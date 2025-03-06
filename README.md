@@ -1,12 +1,12 @@
 # puzzle_solver
 ## Détails des semaines :
-Semaine 1 : Prise de photos, documentation, organisation du projet (tâches,...) - Aquisition
-Semaine 2 : Détections des pièces et découpage (formes) + Détections des contours des pièces (trou, têtes, points) - Calibration et detouring
-Semaine 3 : Détections de la couleur des pièces (couleurs) - Detouring
-Semaine 4 : Matchings + Descripteur (pièces les plus compatible)
-Semaine 5 : Reconstruction, corrections 
-Semaine 6 : Construction de l'image
-semaine 7 : - 
+- Semaine 1 : Prise de photos, documentation, organisation du projet (tâches,...) - Aquisition
+- Semaine 2 : Détections des pièces et découpage (formes) + Détections des contours des pièces (trou, têtes, points) - Calibration et detouring
+- Semaine 3 : Détections de la couleur des pièces (couleurs) - Detouring
+- Semaine 4 : Matchings + Descripteur (pièces les plus compatible)
+- Semaine 5 : Reconstruction, corrections 
+- Semaine 6 : Construction de l'image
+- semaine 7 : - 
 
 # Contexte : 
 - Résoudre un puzzle pris depuis une photo (photo du dessus (sur fond unique), éparpillées)
