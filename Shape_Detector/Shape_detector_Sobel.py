@@ -6,8 +6,11 @@ WINDOW_SIZE = (900, 700)
 WINDOW_SIZE_PIECE = (200, 200)
 
 # Charger l'image
-#image_path = '../images/p1_b/Natel.Black1.jpg'
-image_path = '../images/p1_b/Natel.Black.jpg'
+image_path = '../images/p1_b/Natel.Black1.jpg' # Bon
+#image_path = '../images/p1_b/Natel.Black.jpg' # Bon
+#image_path = '../images/p1_b/Natel_Black_G.jpg' #Problème de résolution
+#image_path = '../images/p1/WIN_20250306_15_09_28_Pro.jpg' #Pb du fond avec la table
+
 
 assert os.path.exists(image_path), f"Erreur : le fichier {image_path} n'existe pas."
 im = cv.imread(image_path)
@@ -104,7 +107,7 @@ for contour in contours_filtered:
     cv.drawContours(im_piece_contours, contours_piece, -1, (0, 255, 0), 2)
 
     # Filtrer les contours selon leur superficie
-    min_area_p = min_area  # Définir un seuil minimum pour la superficie des contours
+    min_area_p = np.percentile(areas_filtered, 40) # Définir un seuil minimum pour la superficie des contours
     contours_filtered_p = [cnt_p for cnt_p in contours_piece if cv.contourArea(cnt_p) > min_area_p]
 
     # Filtrer les contours
