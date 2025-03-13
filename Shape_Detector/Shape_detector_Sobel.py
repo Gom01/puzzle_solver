@@ -111,6 +111,29 @@ for contour in contours_filtered:
     # Appliquer le masque inversé pour transformer l'extérieur des contours en noir
     piece_with_black_background = cv.bitwise_and(piece_image, piece_image, mask=piece_mask)
 
+    # Définir la taille de la marge (en pixels)
+    marge_noir = 20  # Par exemple, marge de 20 pixels
+
+
+
+
+    # Remplacement de l'intérieur par du blanc
+    piece_with_black_background_with_white_inside = piece_with_black_background.copy()
+    piece_with_black_background_with_white_inside[np.where(piece_mask == 255)] = [255, 255, 255]
+
+    # Ajouter la marge noire autour de la pièce avec fond noir et intérieur blanc
+    piece_with_margin = cv.copyMakeBorder(piece_with_black_background_with_white_inside,
+                                          top=marge_noir,
+                                          bottom=marge_noir,
+                                          left=marge_noir,
+                                          right=marge_noir,
+                                          borderType=cv.BORDER_CONSTANT,
+                                          value=[0, 0, 0])  # Marge noire
+
+    pieces_separated = []  # Liste des images des pièces avec fond noir et intérieur blanc
+
+
+
     # Affichage combiné en une seule fenêtre
     resultat_final = np.hstack((
         cv.resize(cv.cvtColor(piece_gray, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
@@ -119,8 +142,25 @@ for contour in contours_filtered:
         cv.resize(cv.cvtColor(opening_p, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
         cv.resize(im_piece_contours, WINDOW_SIZE_PIECE),
         cv.resize(im_contours_filtered_p, WINDOW_SIZE_PIECE),
-        cv.resize(piece_with_black_background, WINDOW_SIZE_PIECE)  # Affichage avec fond noir
+        cv.resize(piece_with_black_background, WINDOW_SIZE_PIECE)
+        # Affichage avec fond noir
     ))
+
+    # Définir le chemin du dossier
+    output_folder = "list_pieces"
+
+    # Vérifier si le dossier existe, sinon le créer
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+
+
+    output_path = os.path.join(output_folder, f"piece{x}_{y}.jpg")
+
+    # Sauvegarder
+    cv.imwrite(output_path, piece_with_margin)
+
+    print(f"Image sauvegardée sous : {output_path}")
 
     cv.imshow(f'Contours de la pièce {x},{y}', resultat_final)
     cv.waitKey(1000)
@@ -131,6 +171,8 @@ for contour in contours_filtered:
     for cnt in contours_filtered_p:
         cnt += [x, y]
         all_piece_contours.append(cnt)
+
+
 
 # Dessiner les contours globaux sélectionnés
 im_all_contours = im.copy()
