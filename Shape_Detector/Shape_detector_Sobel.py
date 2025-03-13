@@ -7,6 +7,9 @@ WINDOW_SIZE_PIECE = (200, 200)
 X_PERCENT = 50  # Ajustable (ex : 30% autour de la médiane)
 MARGIN_PERCENT = 1  # Ajuste la taille de la marge autour des contours
 
+
+pieces_dico = {}
+
 # Charger l'image
 #image_path = '../images/p1_b/Natel.Black1.jpg' # Bon
 image_path = '../images/p1_b/Natel.Black.jpg' # Bon
@@ -74,7 +77,21 @@ all_piece_contours = []
 # Boucle de traitement des pièces
 for contour in contours_filtered:
     x, y, w, h = cv.boundingRect(contour)
-    piece_image = im_with_black_background[y:y + h, x:x + w]
+
+    # Marge à ajouter (par exemple, 10 pixels)
+    marge = 10
+
+    # Augmenter la taille du rectangle
+    x = x - marge
+    y = y - marge
+    w = w + 2 * marge
+    h = h + 2 * marge
+
+    # Assurer que les coordonnées du rectangle restent positives
+    x = max(x, 0)
+    y = max(y, 0)
+
+    piece_image = im_with_black_background[y:y + h,x:x + w]
     piece_gray = cv.cvtColor(piece_image, cv.COLOR_BGR2GRAY)
 
     # Seuil Otsu
@@ -103,6 +120,10 @@ for contour in contours_filtered:
 
     # Dessiner contours filtrés
     im_contours_filtered_p = piece_image.copy()
+
+    #print(f"Matrice {im_contours_filtered}")
+
+
     cv.drawContours(im_contours_filtered_p, contours_filtered_p, -1, (0, 255, 0), 2)
     # Créer un masque pour les contours filtrés de la pièce
     piece_mask = np.zeros(piece_image.shape[:2], dtype=np.uint8)
@@ -121,16 +142,6 @@ for contour in contours_filtered:
     piece_with_black_background_with_white_inside = piece_with_black_background.copy()
     piece_with_black_background_with_white_inside[np.where(piece_mask == 255)] = [255, 255, 255]
 
-    # Ajouter la marge noire autour de la pièce avec fond noir et intérieur blanc
-    piece_with_margin = cv.copyMakeBorder(piece_with_black_background_with_white_inside,
-                                          top=marge_noir,
-                                          bottom=marge_noir,
-                                          left=marge_noir,
-                                          right=marge_noir,
-                                          borderType=cv.BORDER_CONSTANT,
-                                          value=[0, 0, 0])  # Marge noire
-
-    pieces_separated = []  # Liste des images des pièces avec fond noir et intérieur blanc
 
 
 
@@ -146,25 +157,34 @@ for contour in contours_filtered:
         # Affichage avec fond noir
     ))
 
+    pieces_dico[f"piece{x}_{y}_C.jpg"] = im_contours_filtered_p
+
     # Définir le chemin du dossier
     output_folder = "list_pieces"
+    output_folder2 = "list_pieces_C"
 
     # Vérifier si le dossier existe, sinon le créer
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-
+    if not os.path.exists(output_folder2):
+        os.makedirs(output_folder2)
 
     output_path = os.path.join(output_folder, f"piece{x}_{y}.jpg")
+    output_path2 = os.path.join(output_folder2, f"piece{x}_{y}_C.jpg")
 
     # Sauvegarder
-    cv.imwrite(output_path, piece_with_margin)
+    cv.imwrite(output_path, piece_with_black_background_with_white_inside)
+    cv.imwrite(output_path2, piece_with_black_background)
 
     print(f"Image sauvegardée sous : {output_path}")
+    print(f"Image sauvegardée sous : {output_path2}")
 
     cv.imshow(f'Contours de la pièce {x},{y}', resultat_final)
-    cv.waitKey(1000)
+    cv.waitKey(2000)
     cv.destroyAllWindows()
+    
+
 
     # Ajouter les contours globaux
     assembled_pieces.append(im_contours_filtered_p)
@@ -182,7 +202,7 @@ cv.drawContours(im_all_contours, all_piece_contours, -1, (0, 255, 255), 10)
 cv.imshow('Image all', cv.resize(im, WINDOW_SIZE))
 cv.imshow('Contours filtrés', cv.resize(im_with_black_background, WINDOW_SIZE))
 cv.imshow('Contours sélectionnés selon X% de la médiane', cv.resize(im_all_contours, WINDOW_SIZE))
-cv.waitKey(2000)
+cv.waitKey(0)
 cv.destroyAllWindows()
 
 # Redimensionner les images à la même taille
@@ -201,3 +221,5 @@ final_image = np.hstack((im_resized, im_with_black_background_resized, im_all_co
 cv.imshow('Image all', cv.resize(final_image, WINDOW_SIZE))
 cv.waitKey(0)
 cv.destroyAllWindows()
+
+
