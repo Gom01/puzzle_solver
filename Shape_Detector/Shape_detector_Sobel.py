@@ -2,146 +2,160 @@ import os
 import cv2 as cv
 import numpy as np
 
-WINDOW_SIZE = (900, 700)
+WINDOW_SIZE = (1000, 800)
 WINDOW_SIZE_PIECE = (200, 200)
+X_PERCENT = 50  # Ajustable (ex : 30% autour de la médiane)
+MARGIN_PERCENT = 1  # Ajuste la taille de la marge autour des contours
 
 # Charger l'image
-image_path = '../images/p1_b/Natel.Black1.jpg' # Bon
-#image_path = '../images/p1_b/Natel.Black.jpg' # Bon
+#image_path = '../images/p1_b/Natel.Black1.jpg' # Bon
+image_path = '../images/p1_b/Natel.Black.jpg' # Bon
 #image_path = '../images/p1_b/Natel_Black_G.jpg' #Problème de résolution
 #image_path = '../images/p1/WIN_20250306_15_09_28_Pro.jpg' #Pb du fond avec la table
-
-
+#image_path = '../images/p2/WIN_20250306_15_11_32_Pro.jpg' #Pb du fond avec la table
 assert os.path.exists(image_path), f"Erreur : le fichier {image_path} n'existe pas."
 im = cv.imread(image_path)
 assert im is not None, "Erreur : l'image ne peut pas être lue."
 
-# Conversion en niveaux de gris pour la détection des contours
+# Conversion en niveaux de gris
 gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-cv.imshow('Gray', cv.resize(gray, WINDOW_SIZE))
-cv.waitKey(0)
-cv.destroyAllWindows()
 
-# Appliquer les filtres de Sobel pour les gradients
-sobelx = cv.Sobel(gray, cv.CV_64F, 1, 0, ksize=3)  # Dérivée en X
-sobely = cv.Sobel(gray, cv.CV_64F, 0, 1, ksize=3)  # Dérivée en Y
+# Seuil Otsu
+_, thresh = cv.threshold(gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
 
-# Magnitude du gradient
-sobel = cv.magnitude(sobelx, sobely)
+# Suppression du bruit
+kernel = np.ones((3, 3), np.uint8)
+opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel, iterations=20)
+opening = cv.bitwise_not(opening)
 
-# Normalisation pour affichage
-sobel = cv.convertScaleAbs(sobel)
+# Détection des contours
+contours, _ = cv.findContours(opening, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-cv.imshow('Sobel', cv.resize(sobel, WINDOW_SIZE))
-cv.waitKey(0)
-cv.destroyAllWindows()
-
-# Seuillage automatique (Otsu) sur la magnitude du gradient
-ret, th_sobel_otsu = cv.threshold(sobel, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
-cv.imshow('Seuillage Sobel Otsu', cv.resize(th_sobel_otsu, WINDOW_SIZE))
-cv.waitKey(0)
-cv.destroyAllWindows()
-
-# Détection des contours après Sobel avec Otsu
-contours, _ = cv.findContours(th_sobel_otsu, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-im_contours = im.copy()
-cv.drawContours(im_contours, contours, -1, (0, 255, 0), 2)
-cv.imshow('Contours détectés après Sobel Otsu', cv.resize(im_contours, WINDOW_SIZE))
-cv.waitKey(0)
-cv.destroyAllWindows()
-
-# Calculer la superficie de chaque contour
+# Filtrer les contours avec une superficie min
 areas = [cv.contourArea(cnt) for cnt in contours]
+areas_filtered = [area for area in areas if area > 1800]
 
-# Exclure les contours dont la superficie est inférieure à 900
-areas_filtered = [area for area in areas if area >= 900]
+# Calcul de la médiane et définition des bornes selon X%
+median_area = np.median(areas_filtered) if areas_filtered else 0
+min_valid_area = median_area * (1 - X_PERCENT / 100)
+max_valid_area = median_area * (1 + X_PERCENT / 100)
 
-# Calculer le quartile 25% des valeurs les plus hautes
-highest_quartile_x = np.percentile(areas_filtered, 10)
-print(f"Quartile % ..des valeurs les plus hautes (sans les surfaces < 900) : {highest_quartile_x}")
+print(f"Aire médiane : {median_area}")
+print(f"Intervalle de sélection : [{min_valid_area}, {max_valid_area}]")
 
-# Définir min_area basé sur le quartile 25% des valeurs les plus hautes
-min_area = highest_quartile_x
+# Filtrer les contours basés sur la médiane
+contours_filtered = [cnt for cnt in contours if min_valid_area <= cv.contourArea(cnt) <= max_valid_area]
 
-# Filtrer les contours selon leur superficie
-contours_filtered = [cnt for cnt in contours if cv.contourArea(cnt) > min_area]
+# Créer un masque pour remplir les contours
+mask = np.zeros(im.shape[:2], dtype=np.uint8)
 
-# Dessiner les contours filtrés
-im_contours_filtered = im.copy()
-cv.drawContours(im_contours_filtered, contours_filtered, -1, (0, 255, 0), 2)
-cv.imshow('Contours filtrés', cv.resize(im_contours_filtered, WINDOW_SIZE))
+# Dessiner les contours sur le masque
+cv.drawContours(mask, contours_filtered, -1, (255), thickness=cv.FILLED)
+
+# Appliquer une dilatation pour créer une marge autour des contours
+kernel = np.ones((5, 5), np.uint8)
+mask_dilated = cv.dilate(mask, kernel, iterations=MARGIN_PERCENT)
+
+# Inverser le masque dilaté pour avoir les zones extérieures en noir
+mask_inv = cv.bitwise_not(mask_dilated)
+
+# Appliquer le masque inversé pour transformer l'extérieur en noir
+im_with_black_background = cv.bitwise_and(im, im, mask=mask_dilated)
+
+# Afficher l'image avec le fond noir
+cv.imshow('Image avec arrière-plan noir', cv.resize(im_with_black_background, WINDOW_SIZE))
 cv.waitKey(0)
 cv.destroyAllWindows()
 
-# Liste pour stocker toutes les images de pièces filtrées et leurs contours
+# Stocker les contours des pièces individuelles
 assembled_pieces = []
 all_piece_contours = []
 
-# Zoomer et réexaminer les pièces détectées
+# Boucle de traitement des pièces
 for contour in contours_filtered:
     x, y, w, h = cv.boundingRect(contour)
-    piece_image = im[y:y + h, x:x + w]
+    piece_image = im_with_black_background[y:y + h, x:x + w]
     piece_gray = cv.cvtColor(piece_image, cv.COLOR_BGR2GRAY)
-    piece_before = im_contours_filtered[y:y + h, x:x + w]
 
-    # Appliquer un flou plus fort pour réduire les détails fins du dessin
-    piece_blurred = cv.GaussianBlur(piece_gray, (5, 5), 0)
+    # Seuil Otsu
+    _, thresh_p = cv.threshold(piece_gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
 
-    # Appliquer Sobel sur l'image floutée
-    sobelx_piece = cv.Sobel(piece_blurred, cv.CV_64F, 1, 0, ksize=3)
-    sobely_piece = cv.Sobel(piece_blurred, cv.CV_64F, 0, 1, ksize=3)
+    # Appliquer Sobel
+    sobelx_piece = cv.Sobel(thresh_p, cv.CV_64F, 1, 0, ksize=3)
+    sobely_piece = cv.Sobel(thresh_p, cv.CV_64F, 0, 1, ksize=3)
     sobel_piece = cv.magnitude(sobelx_piece, sobely_piece)
     sobel_piece = cv.convertScaleAbs(sobel_piece)
 
-    # Seuillage Otsu (vous pouvez aussi essayer un seuil manuel pour plus de contrôle)
-    _, th_sobel_piece = cv.threshold(sobel_piece, 50, 255, cv.THRESH_BINARY)
+    # Suppression du bruit
+    kernel_p = np.ones((3, 3), np.uint8)
+    opening_p = cv.morphologyEx(thresh_p, cv.MORPH_OPEN, kernel, iterations=2)
+    opening_p = cv.bitwise_not(opening_p)
 
-    # Dilatation et érosion pour renforcer les contours
-    kernel = np.ones((5, 5), np.uint8)
-    th_sobel_piece = cv.dilate(th_sobel_piece, kernel, iterations=1)
-    th_sobel_piece = cv.erode(th_sobel_piece, kernel, iterations=1)
+
 
     # Détection des contours
-    contours_piece, _ = cv.findContours(th_sobel_piece, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours_piece, _ = cv.findContours(opening_p, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     im_piece_contours = piece_image.copy()
     cv.drawContours(im_piece_contours, contours_piece, -1, (0, 255, 0), 2)
 
-    # Filtrer les contours selon leur superficie
-    min_area_p = np.percentile(areas_filtered, 40) # Définir un seuil minimum pour la superficie des contours
-    contours_filtered_p = [cnt_p for cnt_p in contours_piece if cv.contourArea(cnt_p) > min_area_p]
+    # Filtrer contours des pièces avec la médiane
+    contours_filtered_p = [cnt_p for cnt_p in contours_piece if min_valid_area <= cv.contourArea(cnt_p) <= max_valid_area]
 
-    # Filtrer les contours
+    # Dessiner contours filtrés
     im_contours_filtered_p = piece_image.copy()
     cv.drawContours(im_contours_filtered_p, contours_filtered_p, -1, (0, 255, 0), 2)
+    # Créer un masque pour les contours filtrés de la pièce
+    piece_mask = np.zeros(piece_image.shape[:2], dtype=np.uint8)
+    cv.drawContours(piece_mask, contours_filtered_p, -1, (255), thickness=cv.FILLED)
 
-    # Affichage des résultats
-    cv.imshow(f'Contours de la pièce {x},{y}',
-              np.hstack((
-                  cv.resize(piece_before, WINDOW_SIZE_PIECE),  # No need to convert
-                  cv.resize(cv.cvtColor(piece_gray, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-                  cv.resize(cv.cvtColor(piece_blurred, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-                  cv.resize(cv.cvtColor(sobel_piece, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-                  cv.resize(cv.cvtColor(th_sobel_piece, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-                  cv.resize(im_piece_contours, WINDOW_SIZE_PIECE),
-                  cv.resize(im_contours_filtered_p, WINDOW_SIZE_PIECE)
-              )))
+    # Appliquer le masque inversé pour transformer l'extérieur des contours en noir
+    piece_with_black_background = cv.bitwise_and(piece_image, piece_image, mask=piece_mask)
+
+    # Affichage combiné en une seule fenêtre
+    resultat_final = np.hstack((
+        cv.resize(cv.cvtColor(piece_gray, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
+        cv.resize(cv.cvtColor(thresh_p, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
+        cv.resize(cv.cvtColor(sobel_piece, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
+        cv.resize(cv.cvtColor(opening_p, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
+        cv.resize(im_piece_contours, WINDOW_SIZE_PIECE),
+        cv.resize(im_contours_filtered_p, WINDOW_SIZE_PIECE),
+        cv.resize(piece_with_black_background, WINDOW_SIZE_PIECE)  # Affichage avec fond noir
+    ))
+
+    cv.imshow(f'Contours de la pièce {x},{y}', resultat_final)
     cv.waitKey(1000)
     cv.destroyAllWindows()
 
-    # Ajouter l'image de la pièce avec ses contours filtrés dans la liste
+    # Ajouter les contours globaux
     assembled_pieces.append(im_contours_filtered_p)
-
-    # Transposer les contours trouvés aux bonnes coordonnées de l'image originale et ajouter à la liste globale des contours
     for cnt in contours_filtered_p:
         cnt += [x, y]
         all_piece_contours.append(cnt)
 
-# Dessiner tous les contours trouvés pour chaque pièce sur l'image originale
+# Dessiner les contours globaux sélectionnés
 im_all_contours = im.copy()
-cv.drawContours(im_all_contours, all_piece_contours, -1, (0, 255, 0), 2)
+cv.drawContours(im_all_contours, all_piece_contours, -1, (0, 255, 255), 10)
 
-# Afficher l'image avec tous les contours trouvés
-cv.imshow('Contours filtrés', cv.resize(im_contours_filtered, WINDOW_SIZE))
-cv.imshow('Tous les contours trouvés', cv.resize(im_all_contours, WINDOW_SIZE))
+# Afficher le résultat final
+cv.imshow('Image all', cv.resize(im, WINDOW_SIZE))
+cv.imshow('Contours filtrés', cv.resize(im_with_black_background, WINDOW_SIZE))
+cv.imshow('Contours sélectionnés selon X% de la médiane', cv.resize(im_all_contours, WINDOW_SIZE))
+cv.waitKey(2000)
+cv.destroyAllWindows()
+
+# Redimensionner les images à la même taille
+height = max(im.shape[0], im_with_black_background.shape[0], im_all_contours.shape[0])
+width = max(im.shape[1], im_with_black_background.shape[1], im_all_contours.shape[1])
+
+# Redimensionner les images pour qu'elles aient toutes la même taille
+im_resized = cv.resize(im, (width, height))
+im_with_black_background_resized = cv.resize(im_with_black_background, (width, height))
+im_all_contours_resized = cv.resize(im_all_contours, (width, height))
+
+# Combiner les images horizontalement
+final_image = np.hstack((im_resized, im_with_black_background_resized, im_all_contours_resized))
+
+# Afficher le résultat final
+cv.imshow('Image all', cv.resize(final_image, WINDOW_SIZE))
 cv.waitKey(0)
 cv.destroyAllWindows()
