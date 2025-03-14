@@ -8,6 +8,7 @@ WINDOW_SIZE = (900, 700)
 
 # Charger l'image
 image_path = '../images/p1/WIN_20250306_15_09_28_Pro.jpg'
+#image_path = '../images/p1_b/Natel.Black1.jpg'
 assert os.path.exists(image_path), f"Erreur : le fichier {image_path} n'existe pas."
 im = cv.imread(image_path)
 assert im is not None, "Erreur : l'image ne peut pas être lue."
@@ -52,3 +53,13 @@ cv.drawContours(im_contours, contours, -1, (0, 255, 0), 2)
 cv.imshow('Contours détectés', cv.resize(im_contours, WINDOW_SIZE))
 cv.waitKey(0)
 cv.destroyAllWindows()
+
+# Étape 7 : Approximation des contours pour les lisser
+contours_approx = [cv.approxPolyDP(cnt, 0.001 * cv.arcLength(cnt, True), True) for cnt in contours]
+im_contours_approx = im.copy()
+cv.drawContours(im_contours_approx, contours_approx, -1, (0, 255, 255), 2)
+cv.imshow('7 - Contours optimisés', cv.resize(im_contours_approx, WINDOW_SIZE))
+cv.waitKey(0)
+
+cv.destroyAllWindows()
+
