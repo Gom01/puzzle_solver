@@ -98,7 +98,7 @@ for contour_piece in contours_filtered:
     cv.destroyAllWindows()
 
     # Créer l'objet Piece_Puzzle avec toutes les informations
-    piece = Piece_Puzzle(piece_with_black_background_with_white_inside,contours_filtered_p,x,y)
+    piece = Piece_Puzzle(piece_with_black_background_with_white_inside,piece_with_black_background,contours_filtered_p,x,y)
 
 
     puzzle.add_pieceset(piece)

@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 
 class Piece_Puzzle:
-    def __init__(self, image, contours, x, y):
+    def __init__(self, image,image_color, contours, x, y):
         """
         Initialise une pièce de puzzle.
 
@@ -12,6 +12,7 @@ class Piece_Puzzle:
         :param y: Coordonnée y de la pièce.
         """
         self.image = image
+        self.image_color = image_color
         self.contours = contours
         self.x = x
         self.y = y
@@ -19,6 +20,10 @@ class Piece_Puzzle:
     def get_image(self):
         """Retourne l'image de la pièce."""
         return self.image
+
+    def get_image_color(self):
+        """Retourne l'image de la pièce."""
+        return self.image_color
 
     def get_contours(self):
         adjusted_contours = []
