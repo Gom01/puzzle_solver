@@ -29,6 +29,12 @@ for idx, piece in enumerate(pieces):
     # Dessiner les contours ajustés sur l'image recadrée
     cv.drawContours(img_color, contours, -1, (0, 255, 0), 2)
 
+    piece.find_color_contour(shift_factor=4)
+
+    piece.display_color_pixels()
+
+    print(piece.get_color_contour())
+
     # Afficher l'image avec les contours ajustés
     cv.imshow(f'Piece {idx + 1}', img_color)
     cv.waitKey(0)
