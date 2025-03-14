@@ -21,9 +21,16 @@ class Piece_Puzzle:
         return self.image
 
     def get_contours(self):
-        """Retourne les contours de la pièce."""
-        return self.contours
+        adjusted_contours = []
+
+        for contour in self.contours:
+            adjusted_contour = contour - np.array([[self.x, self.y]])
+            adjusted_contours.append(adjusted_contour)
+
+
+        return adjusted_contours
+
 
     def get_position(self):
-        """Retourne la position (x, y) de la pièce."""
-        return self.x, self.y
+            """Retourne la position (x, y) de la pièce."""
+            return self.x, self.y

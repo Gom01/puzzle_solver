@@ -34,6 +34,9 @@ opening = cv.bitwise_not(opening)
 # Détection des contours
 contours, _ = cv.findContours(opening, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
+test =cv.drawContours(im.copy(), contours, -1, (0, 255, 0), 2)
+cv.imshow('Contours', cv.resize(test, WINDOW_SIZE))
+
 # Filtrer les contours avec une superficie min
 areas = [cv.contourArea(cnt) for cnt in contours]
 areas_filtered = [area for area in areas if area > 1800]
@@ -98,10 +101,10 @@ for contour in contours_filtered:
     _, thresh_p = cv.threshold(piece_gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
 
     # Appliquer Sobel
-    sobelx_piece = cv.Sobel(thresh_p, cv.CV_64F, 1, 0, ksize=3)
-    sobely_piece = cv.Sobel(thresh_p, cv.CV_64F, 0, 1, ksize=3)
-    sobel_piece = cv.magnitude(sobelx_piece, sobely_piece)
-    sobel_piece = cv.convertScaleAbs(sobel_piece)
+    #sobelx_piece = cv.Sobel(thresh_p, cv.CV_64F, 1, 0, ksize=3)
+    #sobely_piece = cv.Sobel(thresh_p, cv.CV_64F, 0, 1, ksize=3)
+    #sobel_piece = cv.magnitude(sobelx_piece, sobely_piece)
+    #sobel_piece = cv.convertScaleAbs(sobel_piece)
 
     # Suppression du bruit
     kernel_p = np.ones((3, 3), np.uint8)
@@ -116,10 +119,63 @@ for contour in contours_filtered:
     cv.drawContours(im_piece_contours, contours_piece, -1, (0, 255, 0), 2)
 
     # Filtrer contours des pièces avec la médiane
-    contours_filtered_p = [cnt_p for cnt_p in contours_piece if min_valid_area <= cv.contourArea(cnt_p) <= max_valid_area]
+    contours_filtered_p = [cnt_p2 for cnt_p2 in contours_piece if min_valid_area <= cv.contourArea(cnt_p2) <= max_valid_area]
 
     # Dessiner contours filtrés
     im_contours_filtered_p = piece_image.copy()
+
+
+#----------------------------------------------------------------------------------------------------------------
+
+    # Créer un masque noir de la même taille que l'image
+    mask = np.zeros(piece_image.shape[:2], dtype=np.uint8)
+
+    # Dessiner les contours filtrés sur le masque (en utilisant une épaisseur de ligne minimale, ici 4)
+    cv.drawContours(mask, contours_filtered_p, -1, (255), thickness=4)
+
+    # Maintenant, nous devons extraire seulement les pixels qui font partie des contours
+    # Appliquer le masque pour obtenir les pixels sur les contours (les pixels avec la valeur 255)
+    contour_pixels = cv.bitwise_and(piece_image, piece_image, mask=mask)
+
+    # Initialiser une liste pour stocker les coordonnées et les couleurs des pixels sur les contours
+    contour_pixel_data = []
+
+    # Parcourir tous les pixels de contour_pixels et récupérer ceux non nuls
+    for y in range(contour_pixels.shape[0]):
+        for x in range(contour_pixels.shape[1]):
+            if mask[y, x] == 255:  # Si le pixel est sur le contour
+                # Récupérer la couleur du pixel à la position (x, y) dans l'image originale
+                color = contour_pixels[y, x]
+                contour_pixel_data.append({'x': x, 'y': y, 'color': color})
+
+    # Afficher les 10 premiers résultats pour vérifier
+    for data in contour_pixel_data[:10]:
+        print(f"Coordonnée: ({data['x']}, {data['y']}), Couleur: {data['color']}")
+
+    # Trouver le centre du contour
+    for contour in contours_filtered_p:
+        # Calculer le centre de la boîte englobante du contour
+        M = cv.moments(contour)
+        if M["m00"] != 0:  # Vérifier que le moment est non nul (pour éviter la division par zéro)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+
+            # Dessiner un cercle jaune au centre du contour
+            cv.circle(contour_pixels, (cX, cY), 10, (0, 255, 255), -1)  # Cercle jaune (BGR)
+
+
+
+    # Afficher les pixels qui sont sur le contour (en fonction de la taille de l'image, c'est peut-être trop volumineux)
+    cv.imshow('Pixels sur les contours', cv.resize(contour_pixels, WINDOW_SIZE))
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+    #----------------------------------------------------------------------------------------------------------------
+
+
+
+
+
 
     #print(f"Matrice {im_contours_filtered}")
 
@@ -133,7 +189,7 @@ for contour in contours_filtered:
     piece_with_black_background = cv.bitwise_and(piece_image, piece_image, mask=piece_mask)
 
     # Définir la taille de la marge (en pixels)
-    marge_noir = 20  # Par exemple, marge de 20 pixels
+    #marge_noir = 20  # Par exemple, marge de 20 pixels
 
 
 
@@ -144,12 +200,11 @@ for contour in contours_filtered:
 
 
 
-
     # Affichage combiné en une seule fenêtre
     resultat_final = np.hstack((
         cv.resize(cv.cvtColor(piece_gray, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
         cv.resize(cv.cvtColor(thresh_p, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-        cv.resize(cv.cvtColor(sobel_piece, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
+        #cv.resize(cv.cvtColor(sobel_piece, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
         cv.resize(cv.cvtColor(opening_p, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
         cv.resize(im_piece_contours, WINDOW_SIZE_PIECE),
         cv.resize(im_contours_filtered_p, WINDOW_SIZE_PIECE),
@@ -157,7 +212,11 @@ for contour in contours_filtered:
         # Affichage avec fond noir
     ))
 
-    pieces_dico[f"piece{x}_{y}_C.jpg"] = im_contours_filtered_p
+
+
+    print(f"piece{x}_{y}_C.jpg")
+    pieces_dico[f"piece{x}_{y}_C.jpg"] = contours_filtered_p
+
 
     # Définir le chemin du dossier
     output_folder = "list_pieces"
@@ -181,7 +240,7 @@ for contour in contours_filtered:
     print(f"Image sauvegardée sous : {output_path2}")
 
     cv.imshow(f'Contours de la pièce {x},{y}', resultat_final)
-    cv.waitKey(2000)
+    cv.waitKey(0)
     cv.destroyAllWindows()
     
 
@@ -219,7 +278,10 @@ final_image = np.hstack((im_resized, im_with_black_background_resized, im_all_co
 
 # Afficher le résultat final
 cv.imshow('Image all', cv.resize(final_image, WINDOW_SIZE))
-cv.waitKey(0)
+cv.waitKey(10)
 cv.destroyAllWindows()
+
+
+
 
 

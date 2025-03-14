@@ -16,8 +16,21 @@ pieces = puzzle.get_pieces()
 for idx, piece in enumerate(pieces):
     print(f"Piece {idx + 1} - Position: {piece.get_position()}")
 
-    # Afficher l'image de la pièce (par exemple)
-    cv.imshow(f'Piece {idx + 1}', piece.get_image())
+    # Récupérer la position de la pièce
+    shift_x, shift_y = piece.get_position()
+
+    # Récupérer l'image recadrée
+    img = piece.get_image()
+
+    # Récupérer les contours et ajuster les coordonnées
+    contours = piece.get_contours()
+
+
+    # Dessiner les contours ajustés sur l'image recadrée
+    cv.drawContours(img, contours, -1, (0, 255, 0), 2)
+
+    # Afficher l'image avec les contours ajustés
+    cv.imshow(f'Piece {idx + 1}', img)
     cv.waitKey(0)
 
 cv.destroyAllWindows()
