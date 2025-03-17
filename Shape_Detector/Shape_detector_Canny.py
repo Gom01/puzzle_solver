@@ -5,7 +5,6 @@ import numpy as np
 WINDOW_SIZE = (900, 700)
 
 
-
 # Charger l'image
 image_path = '../images/p1/WIN_20250306_15_09_28_Pro.jpg'
 #image_path = '../images/p1_b/Natel.Black1.jpg'
