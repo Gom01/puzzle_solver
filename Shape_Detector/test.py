@@ -14,29 +14,29 @@ pieces = puzzle.get_pieces()
 
 # Afficher ou traiter les pièces du puzzle
 for idx, piece in enumerate(pieces):
-    print(f"Piece {idx + 1} - Position: {piece.get_position()}")
+    print(f"Pièce {idx + 1} - Position: {piece.get_position()}")
+
+    # Récupérer l'image couleur
+    img_color = piece.get_image()
 
 
-    # Récupérer l'image recadrée
-    img_just_white = piece.get_image()
 
-    img_color = piece.get_image_color()
 
-    # Récupérer les contours et ajuster les coordonnées
+    # Récupérer les contours
     contours = piece.get_contours()
 
+    piece.animate()
 
-    # Dessiner les contours ajustés sur l'image recadrée
-    cv.drawContours(img_color, contours, -1, (0, 255, 0), 2)
 
-    piece.find_color_contour(shift_factor=4)
+    # Créer une image noire de la même taille que l'image d'origine
+    black_image = np.zeros_like(img_color)
 
-    piece.display_color_pixels()
+    # Dessiner les contours en blanc sur l'image noire
+    cv.drawContours(black_image, contours, -1, (255, 255, 255), 2)
 
-    print(piece.get_color_contour())
-
-    # Afficher l'image avec les contours ajustés
-    cv.imshow(f'Piece {idx + 1}', img_color)
+    # Afficher l'image avec les contours dessinés sur fond noir
+    cv.imshow("Contours sur fond noir", black_image)
     cv.waitKey(0)
+    cv.destroyAllWindows()
 
-cv.destroyAllWindows()
+

@@ -1,4 +1,6 @@
 import os
+from contextlib import closing
+
 import cv2 as cv
 import numpy as np
 
@@ -31,6 +33,7 @@ class Tools:
         Applique le seuil Otsu pour binariser une image.
         """
         _, thresh = cv.threshold(image, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
+
         if window:
             window_size = window_size or WINDOW_SIZE
             cv.imshow('Otsu Threshold', cv.resize(thresh, window_size))
@@ -45,6 +48,7 @@ class Tools:
         kernel = np.ones(kernel_size, np.uint8)
         opening = cv.morphologyEx(image, cv.MORPH_OPEN, kernel, iterations=iterations)
         opening = cv.bitwise_not(opening)
+
         if window:
             window_size = window_size or WINDOW_SIZE
             cv.imshow('Noise Removal', cv.resize(opening, window_size))
@@ -56,6 +60,9 @@ class Tools:
         """
         Trouve les contours dans une image.
         """
+
+
+
         contours, _ = cv.findContours(image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         if window:
             image_c = cv.drawContours(image_origin.copy(), contours, -1, (0, 255, 0), 2)
