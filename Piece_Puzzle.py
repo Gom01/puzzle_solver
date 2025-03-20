@@ -14,6 +14,7 @@ class Piece_Puzzle:
         self.image = image
         self.image_color = image_color
         self.contours = contours
+        self.adjusted_contours = None
         self.x = x
         self.y = y
         self.colors_contour = []
@@ -23,6 +24,8 @@ class Piece_Puzzle:
         self.side_3 = None
         self.side_4 = None
         self.index = 0
+        self.list_corners = None
+
 
 
     def get_image(self):
@@ -40,6 +43,7 @@ class Piece_Puzzle:
             adjusted_contour = contour - np.array([[self.x, self.y]])
             adjusted_contours.append(adjusted_contour)
 
+        self.adjusted_contours = adjusted_contours
 
         return adjusted_contours
 
@@ -131,61 +135,79 @@ class Piece_Puzzle:
         cv.destroyAllWindows()
 
     def find_4_sides(self, list_corners):
-        corner_1 = list_corners[0]
-        corner_2 = list_corners[1]
-        corner_3 = list_corners[2]
-        corner_4 = list_corners[3]
 
-        # Initialisation des côtés
-        side1 = []
-        side2 = []
-        side3 = []
-        side4 = []
 
-        # Définition de l'ordre des coins, pour éviter toute confusion lors de l'itération
-        corners = [corner_1, corner_2, corner_3, corner_4]
 
-        # Point initial du contour
-        point_origin = self.get_next_point()
-        point = point_origin
+        if(len(list_corners) == 4):
 
-        # Variable pour suivre quel côté nous sommes en train de remplir
-        current_side = side1
-        current_corner_index = 0
+            self.list_corners = list_corners
 
-        # Liste des coins que nous avons rencontrés pour la première fois
-        visited_corners = []
+            corner_1 = list_corners[0]
+            corner_2 = list_corners[1]
+            corner_3 = list_corners[2]
+            corner_4 = list_corners[3]
 
-        # Tant qu'on n'a pas parcouru tout le contour
-        while point != point_origin or len(visited_corners) < 4:
-            # Récupérer le prochain point sur le contour
-            point = self.get_next_point()
+            # Initialisation des côtés
+            side1 = []
+            side2 = []
+            side3 = []
+            side4 = []
 
-            # Vérifie si le point est un coin
-            if point in corners:
-                # Si nous passons d'un coin à un autre, on commence un nouveau côté
-                if point not in visited_corners:
-                    visited_corners.append(point)
-                    current_corner_index += 1
+            # Définition de l'ordre des coins, pour éviter toute confusion lors de l'itération
+            corners = [corner_1, corner_2, corner_3, corner_4]
 
-                    # On change de côté chaque fois qu'on passe à un coin
-                    if current_corner_index == 1:
-                        current_side = side2
-                    elif current_corner_index == 2:
-                        current_side = side3
-                    elif current_corner_index == 3:
-                        current_side = side4
+            # Point initial du contour
+            point_origin = self.get_next_point()
 
-            # Ajoute le point au côté actuel
-            current_side.append(point)
+            while point_origin != corner_1:
+                point_origin = self.get_next_point()
 
-            self.side_1 = side1
-            self.side_2 = side2
-            self.side_3 = side3
-            self.side_4 = side4
+            #print(point_origin," - ",corner_1)
 
-        # Retourner les 4 côtés du contour
-        return side1, side2, side3, side4
+            point_origin = self.get_next_point()
+
+            #print(point_origin," - ",corner_1)
+
+
+            point = point_origin
+
+            # Variable pour suivre quel côté nous sommes en train de remplir
+            current_side = side1
+            current_corner_index = 0
+
+            # Liste des coins que nous avons rencontrés pour la première fois
+            visited_corners = []
+            visited_corners.append(corner_1)
+            corners.remove(corner_1)
+
+            # Tant qu'on n'a pas parcouru tout le contour
+            while point != point_origin or len(visited_corners) < 4:
+                # Récupérer le prochain point sur le contour
+                point = self.get_next_point()
+
+                # Vérifie si le point est un coin
+                if point in corners:
+                    # Si nous passons d'un coin à un autre, on commence un nouveau côté
+                    if point not in visited_corners:
+                        visited_corners.append(point)
+                        current_corner_index += 1
+
+                        # On change de côté chaque fois qu'on passe à un coin
+                        if current_corner_index == 1:
+                            current_side = side2
+                        elif current_corner_index == 2:
+                            current_side = side3
+                        elif current_corner_index == 3:
+                            current_side = side4
+
+                # Ajoute le point au côté actuel
+                current_side.append(point)
+
+                self.side_1 = side1
+                self.side_2 = side2
+                self.side_3 = side3
+                self.side_4 = side4
+
 
     def get_next_point(self):
         """
@@ -210,49 +232,58 @@ class Piece_Puzzle:
 
         return tuple(contour[self.index][0])  # Retourne (x, y)
 
-    def animate(self):
-        """
-        Anime le déplacement d'un point rouge sur le contour.
-        """
-        point_origin = self.get_next_point()
-        point = None
+    def get_4_sides(self):
+        if not (self.side_1 is None or self.side_2 is None or self.side_3 is None or self.side_4 is None):
+            # Si tous les côtés sont définis, on peut procéder à une action
 
-        while point_origin != point:
-            frame = self.image_color
+            self.find_4_sides(self.list_corners)
 
-            # Récupérer le point actuel du contour
-            point = self.get_next_point()
 
-            # Dessiner le point rouge
-            cv.circle(frame, point, 3, (0, 0, 255), thickness=3)
 
-            # Afficher l'image
-            cv.imshow("Animation du Contour", frame)
-            cv.waitKey(10)
-            cv.destroyAllWindows()
 
-        cv.destroyAllWindows()
+        return self.side_1, self.side_2, self.side_3, self.side_4
 
-    def draw_sides(self):
-        # Copier l'image pour éviter de modifier l'original
-        image_copy = self.image_color.copy()
+    def display_4_sides(self,img,window =False,time = 0):
 
-        # Définir des couleurs pour chaque côté (en format BGR)
-        color_side1 = (255, 0, 0)  # Bleu
-        color_side2 = (0, 255, 0)  # Vert
-        color_side3 = (0, 0, 255)  # Rouge
-        color_side4 = (255, 255, 0)  # Jaune
+        self.get_4_sides()
 
-        # Dessiner les côtés
-        def draw_side(side, color):
-            for i in range(len(side) - 1):
-                # Tracer une ligne entre deux points successifs
-                cv.line(image_copy, tuple(side[i]), tuple(side[i + 1]), color, 2)
+        if not (self.side_1 is None or self.side_2 is None or self.side_3 is None or self.side_4 is None):
+            # Si tous les côtés sont définis, on peut procéder à une action
+            #print("Tous les côtés sont définis. On peut continuer.")
 
-        # Dessiner chaque côté avec sa couleur respective
-        draw_side(self.side_1, color_side1)
-        draw_side(self.side_2, color_side2)
-        draw_side(self.side_3, color_side3)
-        draw_side(self.side_4, color_side4)
+            color_side1 = (255, 0, 0)  # Bleu
+            color_side2 = (0, 255, 0)  # Vert
+            color_side3 = (0, 0, 255)  # Rouge
+            color_side4 = (255, 255, 0)  # Jaune
 
-        return image_copy
+            # Dessiner la ligne reliant les points
+            for i in range(len(self.side_1) - 1):
+                cv.line(img, self.side_1[i], self.side_1[i + 1], color_side1, 4)
+
+            # Dessiner la ligne reliant les points
+            for i in range(len(self.side_2) - 1):
+                cv.line(img, self.side_2[i], self.side_2[i + 1], color_side2, 4)
+
+            # Dessiner la ligne reliant les points
+            for i in range(len(self.side_3) - 1):
+                cv.line(img, self.side_3[i], self.side_3[i + 1], color_side3, 4)
+
+            # Dessiner la ligne reliant les points
+            for i in range(len(self.side_4) - 1):
+                cv.line(img, self.side_4[i], self.side_4[i + 1], color_side4, 4)
+
+            if window:
+                cv.imshow("4 Sides", img)
+                cv.waitKey(time)
+                cv.destroyAllWindows()
+            return img
+
+
+
+
+
+        else:
+            # Si l'un des côtés est manquant, on peut soit demander à les définir, soit sortir
+            print("Il manque des côtés. Veuillez vérifier.")
+            return img
+
