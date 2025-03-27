@@ -87,11 +87,14 @@ def find_sides(myPuzzle):
         cnt = piece.get_contours()
         corners = piece.get_corners()
         side1, side2, side3, side4 = find_4_sides(piece, piece.get_corners(), False, 0)
+        print(side1)
         piece.set_sides(side1,side2,side3,side4)
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("All sides saved ! ")
     return()
+
+
 
 
 
