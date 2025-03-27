@@ -1,111 +1,102 @@
 from Processing_puzzle import Puzzle as p
-import cv2
+import cv2 as cv
 import numpy as np
 
-def get_next_point(piece):
-    """
-    Récupère le point suivant dans le contour (parcours circulaire).
 
-    :return: Tuple (x, y) du point suivant.
-    """
-    if not hasattr(piece, 'index'):  # Vérifie si l'attribut 'index' existe
-        piece.index = 0  # Initialisation de l'attribut 'index' si nécessaire
+def find_4_sides(piece, list_corners, display=False, time=0):
+    def check_corners(corner):
+        x, y = corner
+        return x != -1 and y != -1
 
-    if len(piece.get_contours()) == 0:  # Vérifie si les contours sont vides
-        print("Erreur: Aucun contour trouvé.")
-        return None
+    def display_4_sides(img, sides, corners, window, time):
+        side1, side2, side3, side4 = sides
+        corner1, corner2, corner3, corner4 = corners
+        colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]  # Bleu, Vert, Rouge, Jaune
 
-    contour = piece.get_contours()[0]  # On suppose qu'il y a au moins un contour
-    if len(contour) == 0:  # Vérifie si le contour est vide
-        print("Erreur: Le contour est vide.")
-        return None
+        # Dessiner chaque côté
+        for i, side in enumerate([side1, side2, side3, side4]):
+            color = colors[i]
+            for j in range(len(side) - 1):
+                cv.line(img, side[j], side[j + 1], color, 4)
 
-    # Assure-toi que l'index reste dans la plage du contour
-    piece.index = (piece.index + 1) % len(contour)
+        # Dessiner chaque coin (cercles)
+        for i, corner in enumerate([corner1, corner2, corner3, corner4]):
+            color = (255, 90, 0)  # Jaune
+            # Dessiner un cercle à chaque coin
+            cv.circle(img, corner, radius=5, color=color, thickness=-1)
 
+        if window:
+            cv.imshow("4 Sides", img)
+            cv.waitKey(time)
+            cv.destroyAllWindows()
 
-    ##TODO ??? CONTOUR ? tuple(contour[self.index][0])
-    return tuple(contour)  # Retourne (x, y)
-
-
-def find_4_sides(piece, list_corners):
-    if (len(list_corners) == 4):
-
-        list_corners = list_corners
-
-        corner_1 = list_corners[0]
-        corner_2 = list_corners[1]
-        corner_3 = list_corners[2]
-        corner_4 = list_corners[3]
-
+    # Vérifier que les coins sont valides
+    if all(check_corners(corner) for corner in list_corners):
         # Initialisation des côtés
-        side1 = []
-        side2 = []
-        side3 = []
-        side4 = []
+        side1, side2, side3, side4 = [], [], [], []
 
-        # Définition de l'ordre des coins, pour éviter toute confusion lors de l'itération
-        corners = [corner_1, corner_2, corner_3, corner_4]
+        # Définition de l'ordre des coins, pour éviter toute confusion
+        corners = list_corners[:]
+        contour = piece.get_contours()
 
-        # Point initial du contour
-        point_origin = get_next_point(piece)
-
-        while point_origin != corner_1:
-            point_origin = get_next_point(piece)
-
-        # print(point_origin," - ",corner_1)
-
-        point_origin = get_next_point(piece)
-
-        # print(point_origin," - ",corner_1)
-
-        point = point_origin
-
-        # Variable pour suivre quel côté nous sommes en train de remplir
+        # Trouver le point de départ qui correspond au premier coin
+        start_index = contour.index(corners[0])
         current_side = side1
-        current_corner_index = 0
+        visited_corners = [corners[0]]
 
-        # Liste des coins que nous avons rencontrés pour la première fois
-        visited_corners = []
-        visited_corners.append(corner_1)
-        corners.remove(corner_1)
+        # Initialisation de la première variable point
+        point = contour[start_index]
+        point_origin = point
+        index = start_index
 
-        # Tant qu'on n'a pas parcouru tout le contour
+        # On commence à remplir les côtés en suivant le contour
         while point != point_origin or len(visited_corners) < 4:
-            # Récupérer le prochain point sur le contour
-            point = get_next_point(piece)
+            point = contour[index]
 
-            # Vérifie si le point est un coin
-            if point in corners:
-                # Si nous passons d'un coin à un autre, on commence un nouveau côté
-                if point not in visited_corners:
-                    visited_corners.append(point)
-                    current_corner_index += 1
+            # Vérifier si le point est un coin
+            if point in corners and point not in visited_corners:
+                visited_corners.append(point)
 
-                    # On change de côté chaque fois qu'on passe à un coin
-                    if current_corner_index == 1:
-                        current_side = side2
-                    elif current_corner_index == 2:
-                        current_side = side3
-                    elif current_corner_index == 3:
-                        current_side = side4
+                # Changer de côté lorsque nous rencontrons un nouveau coin
+                if len(visited_corners) == 2:
+                    current_side = side2
+                elif len(visited_corners) == 3:
+                    current_side = side3
+                elif len(visited_corners) == 4:
+                    current_side = side4
 
-            # Ajoute le point au côté actuel
+            # Ajouter le point au côté actuel
             current_side.append(point)
 
-            piece.side_1 = side1
-            piece.side_2 = side2
-            piece.side_3 = side3
-            piece.side_4 = side4
-            return(side1, side2, side3, side4)
+            # Avancer dans le contour
+            index = (index + 1) % len(contour)
+
+        # Afficher les côtés et les coins si nécessaire
+        display_4_sides(piece.get_color_image(), (side1, side2, side3, side4), list_corners, display, time)
+
+        return side1, side2, side3, side4
+    else:
+        return None, None, None, None
+
+
 
 myPuzzle = p.Puzzle()
 myPuzzle.load_puzzle('../Processing_puzzle/res/puzzle.pickle')
 pieces = myPuzzle.get_pieces()
 
-for idx, piece in enumerate(pieces):
-    side1, side2, side3, side4 = find_4_sides(piece, piece.get_corners())
-    print(side1)
+for piece in pieces:
+
+    cnt = piece.get_contours()
+    corners = piece.get_corners()
+    print("Corners :",corners)
+    side1, side2, side3, side4 = find_4_sides(piece, piece.get_corners(),True,0)
+    print("Side 1 :",side1)
+
+
+    #cv2.imshow("img",piece.get_color_image())
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+
 
 
 
