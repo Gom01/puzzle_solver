@@ -52,12 +52,16 @@ class Piece:
         self.corners = corners
         return
 
+    def set_sides(self, side1, side2, side3, side4):
+        self.side_1, self.side_2, self.side_3, self.side_4 = side1, side2, side3, side4
+        return
+
     def get_4_sides(self):
         return self.side_1, self.side_2, self.side_3, self.side_4
 
 
     def __str__(self):
         return (f"Piece: {self.index}\n  Position: ({self.x},{self.y})\n  Contours: [{self.contours[0]},...]\n  "
-                f"Corners: [{self.corners[0]},...]\n  Side1:[{self.side_1}]\n  Colored Contours : [{self.colors_contour[0]},...]\n  ")
+                f"Corners: [{self.corners[0]},...]\n  Side1:[{self.side_1[0]}]\n  Colored Contours : [{self.colors_contour[0]},...]\n  ")
 
 
