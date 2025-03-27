@@ -23,7 +23,6 @@ class Piece:
         self.adjusted_contours = None
         self.colors_contour = []
         self.corners = None
-        self.moments = None
         self.side_1 = None
         self.side_2 = None
         self.side_3 = None
@@ -58,6 +57,7 @@ class Piece:
 
 
     def __str__(self):
-        return f"Piece : {self.index} \n pos : {self.x}, {self.y} \n contours = {self.contours[0][0]}... \n corners = {self.corners[0]}... \n side1 = {self.side_1}"
+        return (f"Piece: {self.index}\n  Position: ({self.x},{self.y})\n  Contours: [{self.contours[0]},...]\n  "
+                f"Corners: [{self.corners[0]},...]\n  Side1:[{self.side_1}]\n  Colored Contours : [{self.colors_contour[0]},...]\n  ")
 
 
