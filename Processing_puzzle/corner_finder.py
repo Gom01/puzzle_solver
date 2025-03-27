@@ -3,11 +3,13 @@ import numpy as np
 
 
 '''
-    Function find_corners : Find the four corners of a piece, if not found return some close value
+    Function raw_corners : Find the four corners of a piece, if not found return some close value these points
+    doesn't correspond to real points
     Input: black and white image of a piece
     Output: 4 Corner coordinates [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
 '''
-def find_corners(img):
+def raw_corners(img):
+
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     #Step 1 : Blur the image to have a better contrast
@@ -105,16 +107,62 @@ def find_corners(img):
     return calculate_missing(points_middle)
 
 
-# ##Main code :
-#
-# path = '../Shape_Detector/list_pieces'
-#
-# for filename in os.listdir(path):
-#     img_path = os.path.join(path, filename)
-#     img = cv2.imread(img_path)
-#
-#     corners = find_corners(img)
-#     for c in corners:
-#         cv2.circle(img, c, 5, (255, 0, 0), -1)
-#     cv2.imshow("img", img)
-#     cv2.waitKey(0)
+'''
+    Function find_corners : Match raw_corners to the value
+'''
+def find_corners(myPuzzle):
+        pieces = myPuzzle.get_pieces()
+
+        for idx, piece in enumerate(pieces):
+            img = piece.get_black_white_image()
+            contours = piece.get_contours()
+            rawCorners = raw_corners(img)
+
+            dist_mini_corners_1 = float('inf')
+            dist_mini_corners_2 = float('inf')
+            dist_mini_corners_3 = float('inf')
+            dist_mini_corners_4 = float('inf')
+
+            corner_adjusted_1 = rawCorners[0]
+            corner_adjusted_2 = rawCorners[1]
+            corner_adjusted_3 = rawCorners[2]
+            corner_adjusted_4 = rawCorners[3]
+
+            x0, y0 = rawCorners[0]
+            x1, y1 = rawCorners[1]
+            x2, y2 = rawCorners[2]
+            x3, y3 = rawCorners[3]
+
+            if rawCorners[0] != [-1,-1]:
+                for point in contours:
+                    x, y = point[0], point[1]
+
+                    dist_corner_1 = ((x - x0)**2.0 + (y - y0)**2.0)**(1.0/2.0)
+                    dist_corner_2 = ((x - x1)**2.0 + (y - y1)**2.0)**(1.0 / 2.0)
+                    dist_corner_3 = ((x - x2)**2.0 + (y - y2)**2.0)**(1.0 / 2.0)
+                    dist_corner_4 = ((x - x3)**2.0 + (y - y3)**2.0)**(1.0 / 2.0)
+
+                    if dist_corner_1 < dist_mini_corners_1:
+                         dist_mini_corners_1 = dist_corner_1
+                         corner_adjusted_1 = (x,y)
+
+                    if dist_corner_2 < dist_mini_corners_2:
+                           dist_mini_corners_2 = dist_corner_2
+                           corner_adjusted_2 = (x,y)
+
+                    if dist_corner_3 < dist_mini_corners_3:
+                        dist_mini_corners_3 = dist_corner_3
+                        corner_adjusted_3 = (x,y)
+
+                    if dist_corner_4 < dist_mini_corners_4:
+                        dist_mini_corners_4 = dist_corner_4
+                        corner_adjusted_4 = (x,y)
+
+
+                piece.set_corners([corner_adjusted_1,corner_adjusted_2,corner_adjusted_3,corner_adjusted_4])
+            else:
+                piece.set_corners([[-1,-1],[-1,-1],[-1,-1], [-1,-1]])
+
+        myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
+        print("Corners saved ! ")
+        return()
