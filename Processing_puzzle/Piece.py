@@ -27,6 +27,14 @@ class Piece:
         self.side_2 = None
         self.side_3 = None
         self.side_4 = None
+
+        self.side_1_info = None
+        self.side_2_info = None
+        self.side_3_info = None
+        self.side_4_info = None
+
+
+
         self.can_be_process = True
 
 
@@ -58,6 +66,13 @@ class Piece:
 
     def get_4_sides(self):
         return self.side_1, self.side_2, self.side_3, self.side_4
+
+    def set_4_sides_info(self,side1, side2, side3, side4):
+        self.side_1_info, self.side_2_info, self.side_3_info, self.side_4_info = side1, side2, side3, side4
+        return
+
+    def get_4_sides_info(self):
+        return self.side_1_info, self.side_2_info, self.side_3_info, self.side_4_info
 
 
     def __str__(self):
