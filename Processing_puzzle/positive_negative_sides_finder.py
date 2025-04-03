@@ -1,93 +1,127 @@
 import cv2
 import cv2 as cv
 import numpy as np
-from matplotlib import pyplot as plt
-
 from Processing_puzzle import Puzzle as p
 
 
-def drawing_sides(piece):
-    sides = piece.get_4_sides()
+import cv2 as cv
+import numpy as np
+from Processing_puzzle import Puzzle as p
 
-    # Centre de masse du contour global de la pièce
-    piece_contour_R = np.array(piece.get_contours()).reshape((-1, 1, 2))
-    M1 = cv.moments(piece_contour_R)
+def sides_information(myPuzzle):
 
-    type = piece.get_4_sides_info()[3]
+    def type_of_sides(piece,windows=False):
+        sides = piece.get_4_sides()  # Liste des côtés
+        img = piece.get_black_white_image()  # Image en noir et blanc
 
-    points = sides[3]
-    print(points)
+        # Centre de masse du contour global de la pièce
+        piece_contour = np.array(piece.get_contours()).reshape((-1, 1, 2))
+        M1 = cv.moments(piece_contour)
+        if M1["m00"] != 0:
+            x_M1 = int(M1["m10"] / M1["m00"])
+            y_M1 = int(M1["m01"] / M1["m00"])
+        else:
+            x_M1, y_M1 = 0, 0  # Éviter division par zéro
 
-    points = np.array(points, dtype=np.int32).reshape((-1, 2))
+        sides_info = []
 
-    picture = piece.get_black_white_image()
-    cv2.drawContours(picture, [points], 0, (255, 0, 255), 2)
-    cv2.imshow('picture', picture)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        for i, side in enumerate(sides):
+            # Transformer le côté en un contour OpenCV
+            side_array = np.array(side).reshape((-1, 1, 2))
 
-    cx = int(M1["m10"] / M1["m00"])
-    cy = int(M1["m01"] / M1["m00"])
+            # Enveloppe convexe du côté
+            hull = cv.convexHull(side_array)
 
-    # Étape 1 : Translation pour ramener le premier point à (0,0)
-    x0, y0 = points[0]
-    translated_points = [(x - x0, y - y0) for x, y in points]
+            # Calcul des moments du **hull**
+            M = cv.moments(hull)
+            if M["m00"] != 0:
+                x_M = int(M["m10"] / M["m00"])
+                y_M = int(M["m01"] / M["m00"])
+            else:
+                x_M, y_M = 0, 0  # Éviter division par zéro
 
-    # Nouveau dernier point après translation
-    x1_t, y1_t = translated_points[-1]
+            # Déterminer les points extrêmes du côté
+            x1, y1 = side_array[0][0]   # Premier point (extrême gauche)
+            x2, y2 = side_array[-1][0]  # Dernier point (extrême droit)
 
-    # Étape 2 : Calcul de l'angle de rotation
-    theta = np.arctan2(y1_t, x1_t)  # Angle entre le premier et dernier point
+            # Calcul de l'équation de la droite entre les extrémités
+            if x2 - x1 != 0:
+                a = (y2 - y1) / (x2 - x1)
+                b = y1 - a * x1
+            else:
+                a = None  # Droite verticale
 
-    # Matrice de rotation
-    cos_t, sin_t = np.cos(-theta), np.sin(-theta)
-    rotation_matrix = np.array([[cos_t, -sin_t], [sin_t, cos_t]])
+            # Vérifier la position relative du centre de masse du hull
+            def position_relative(x, y):
+                if a is not None:
+                    return y - (a * x + b)  # Positif si au-dessus, négatif si en dessous
+                else:
+                    return x - x1  # Pour une droite verticale
 
-    # Application de la rotation
-    rotated_points = [tuple(np.dot(rotation_matrix, [x, y])) for x, y in translated_points]
-
-    # Transformation des coordonnées du centre de masse (cx, cy)
-    transformed_cx, transformed_cy = np.dot(rotation_matrix, [cx - x0, cy - y0])
-
-    # Si la pièce est concave, appliquer une rotation finale de 180 degrés
-    if type == "concave":
-        # Matrice de rotation de 180 degrés
-        rotation_180 = np.array([[-1, 0], [0, -1]])
-
-        # Appliquer la rotation de 180 degrés aux points transformés
-        rotated_points = [tuple(np.dot(rotation_180, [x, y])) for x, y in rotated_points]
-
-        # Transformation du centre de masse
-        transformed_cx, transformed_cy = np.dot(rotation_180, [transformed_cx, transformed_cy])
-
-    # Séparation des coordonnées X et Y
-    x_values, y_values = zip(*rotated_points)
-
-    # Création de la courbe
-    plt.figure(figsize=(8, 5))
-    plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=5, label="Points transformés")
-
-    # Ajout du centre de masse transformé
-    plt.scatter(transformed_cx, transformed_cy, color='r', label=f'Centre de masse ({transformed_cx:.2f}, {transformed_cy:.2f})', zorder=5)
-
-    plt.axhline(0, color='black', linewidth=1)  # Ligne horizontale
-    plt.axvline(0, color='black', linewidth=1)  # Ligne verticale
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.title("Courbe avec points alignés et centre de masse")
-    plt.xlabel("X aligné")
-    plt.ylabel("Y ajusté")
-    plt.legend()
-
-    # Affichage
-    plt.show()
+            pos_M1 = position_relative(x_M1, y_M1)
+            pos_M = position_relative(x_M, y_M)
 
 
-# Charger et traiter le puzzle
-myPuzzle = p.Puzzle()
-myPuzzle.load_puzzle('../Processing_puzzle/res/puzzle.pickle')
-pieces = myPuzzle.get_pieces()
+            if windows:
+                print("Area :",cv2.contourArea(hull))
 
-# Appliquer la fonction pour chaque pièce
-this_piece = pieces[7]
+            # Déterminer la nature du côté
+            if cv.contourArea(hull) < 1000:
+                type_cote = "droit"
+                color = (255, 255, 0)  # Jaune
 
-drawing_sides(this_piece)
+            elif np.sign(pos_M1) == np.sign(pos_M):
+                type_cote = "concave"
+                color = (255, 0, 0)  # Bleu
+
+            else:
+                type_cote = "convexe"
+                color = (0, 255, 0)  # Vert
+
+
+            sides_info.append(type_cote)
+
+
+            if windows:
+                print(f"Le côté {i} est {type_cote}.")
+
+            # Dessiner les résultats
+            img_copy = img.copy()
+            cv.drawContours(img_copy, [hull], -1, (0, 255, 0), thickness=2)  # Hull en vert
+            cv.circle(img_copy, (x_M1, y_M1), 5, (255, 0, 0), -1)  # Centre de masse du puzzle (bleu)
+            cv.circle(img_copy, (x_M, y_M), 5, (0, 0, 255), -1)  # Centre de masse du hull (rouge)
+            cv.circle(img_copy, (x1, y1), 5, (255, 255, 255), -1)  # Points extrêmes en blanc
+            cv.circle(img_copy, (x2, y2), 5, (255, 255, 255), -1)
+            cv.line(img_copy, (x1, y1), (x2, y2), (255, 0, 255), 2)
+
+            if(windows):
+
+                # Afficher l'image
+                cv.imshow(f"Côté {i}", img_copy)
+                cv.waitKey(0)
+                cv.destroyAllWindows()
+
+                print(f"Le côté {i} a été traité.")
+
+        return sides_info
+
+
+    pieces = myPuzzle.get_pieces()
+
+    # Appliquer la fonction pour chaque pièce
+    for piece in pieces:
+        sides_info = type_of_sides(piece,False)
+        print(sides_info)
+
+        side_0 = sides_info[0]
+        side_1 = sides_info[1]
+        side_2 = sides_info[2]
+        side_3 = sides_info[3]
+
+        piece.set_4_sides_info(side_0, side_1, side_2, side_3)
+
+    myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
+    print("All sides info saved ! ")
+    return ()
+
+
