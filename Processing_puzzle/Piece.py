@@ -33,7 +33,17 @@ class Piece:
         self.side_3_info = None
         self.side_4_info = None
 
+        self.side_1_eq = None
+        self.side_2_eq = None
+        self.side_3_eq = None
+        self.side_4_eq = None
 
+        self.name_piece = ""
+
+        self.side_1_name = ""
+        self.side_2_name = ""
+        self.side_3_name = ""
+        self.side_4_name = ""
 
         self.can_be_process = True
 
@@ -73,6 +83,27 @@ class Piece:
 
     def get_4_sides_info(self):
         return self.side_1_info, self.side_2_info, self.side_3_info, self.side_4_info
+
+    def set_4_sides_eq(self, side1, side2, side3, side4):
+        self.side_1_eq, self.side_2_eq, self.side_3_eq, self.side_4_eq = side1, side2, side3, side4
+        return
+
+    def get_4_sides_eq(self):
+        return self.side_1_eq, self.side_2_eq, self.side_3_eq, self.side_4_eq
+
+    def set_name(self,name):
+        self.name_piece = name
+        return
+    def get_name_piece(self):
+        return self.name_piece
+
+    def set_4_sides_name(self,side1, side2, side3, side4):
+        self.side_1_name, self.side_2_name, self.side_3_name, self.side_4_name = side1, side2, side3, side4
+        return
+
+    def get_4_sides_name(self):
+        return self.side_1_name, self.side_2_name, self.side_3_name, self.side_4_name
+
 
 
     def __str__(self):

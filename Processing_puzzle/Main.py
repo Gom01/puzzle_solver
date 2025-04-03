@@ -3,6 +3,7 @@ from Processing_puzzle import corner_finder as cf
 from Processing_puzzle import color_analysis as ca
 from Processing_puzzle import sides_finder as sf
 from Processing_puzzle import positive_negative_sides_finder as sp
+from Processing_puzzle import find_the_equation_sides as fe
 
 image_path = '../images/p1_b/Natel.Black.jpg'
 
@@ -13,6 +14,8 @@ cf.find_corners(myPuzzle)
 ca.find_color(myPuzzle)
 sf.find_sides(myPuzzle)
 sp.sides_information(myPuzzle)
+fe.sides_eq(myPuzzle)
+
 
 
 pieces = myPuzzle.get_pieces()
