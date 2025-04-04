@@ -17,6 +17,9 @@ def sides_information(myPuzzle):
         # Centre de masse du contour global de la pièce
         piece_contour = np.array(piece.get_contours()).reshape((-1, 1, 2))
         M1 = cv.moments(piece_contour)
+
+        piece.set_moment(M1)
+
         if M1["m00"] != 0:
             x_M1 = int(M1["m10"] / M1["m00"])
             y_M1 = int(M1["m01"] / M1["m00"])

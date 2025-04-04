@@ -5,6 +5,10 @@ class Side:
         self.side_points = None
         self.side_colors = None
         self.side_eq = None
+        self.side_hierarchy = None
+        self.side_match = None
+        self.piece_match = None
+        self.rotation = None
 
 
 
@@ -28,6 +32,13 @@ class Side:
         self.side_eq = side_eq
         return
 
+    def set_side_hierarchy(self, side_hierarchy):
+        self.side_hierarchy = side_hierarchy
+        return
+
+    def get_side_hiearchy(self):
+        return self.side_hierarchy
+
 
     def get_side_name(self):
         return self.side_name
@@ -43,3 +54,27 @@ class Side:
 
     def get_side_eq(self):
         return self.side_eq
+
+    def set_piece_match(self, piece_match):
+        self.piece_match = piece_match
+        return
+
+    def set_side_match(self, side_match):
+        self.side_match = side_match
+        return
+
+    def get_piece_match(self):
+        return self.piece_match
+
+    def get_side_match(self, side_match):
+        return self.side_match
+
+    def set_rotation(self, rotation):
+        self.rotation = rotation
+        return
+    def get_rotation(self):
+        return self.rotation
+
+
+    def __str__(self):
+        return (f"Side : {self.side_name}\n, points : {self.side_points}\n, colors : {self.side_colors}\n, equation : {self.side_eq}, hierarchy : {self.side_hierarchy}")

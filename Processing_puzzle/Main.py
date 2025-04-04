@@ -4,6 +4,7 @@ from Processing_puzzle import color_analysis as ca
 from Processing_puzzle import sides_finder as sf
 from Processing_puzzle import positive_negative_sides_finder as sp
 from Processing_puzzle import find_the_equation_sides as fe
+from Processing_puzzle import Piece_definition as pd
 
 image_path = '../images/p1_b/Natel.Black.jpg'
 
@@ -15,13 +16,14 @@ ca.find_color(myPuzzle)
 sf.find_sides(myPuzzle)
 sp.sides_information(myPuzzle)
 fe.sides_eq(myPuzzle)
+pd.piece_definition(myPuzzle)
 
 
 
 pieces = myPuzzle.get_pieces()
-print()
-for idx, piece in enumerate(pieces):
-    print(piece)
+#print()
+#for idx, piece in enumerate(pieces):
+ #   print(piece)
 
 
 

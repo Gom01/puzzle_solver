@@ -108,7 +108,7 @@ def find_sides(myPuzzle):
 
         piece.set_name(name)
 
-        name_piece = piece.get_name_piece()
+        name_piece = piece.get_name()
 
         print(name_piece)
 

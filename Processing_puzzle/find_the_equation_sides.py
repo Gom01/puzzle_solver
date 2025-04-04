@@ -54,6 +54,9 @@ def sides_eq(myPuzzle):
             cos_t, sin_t = np.cos(-theta), np.sin(-theta)
             rotation_matrix = np.array([[cos_t, -sin_t], [sin_t, cos_t]])
 
+            # Cumul des deux rotations
+            rotation_resultante = rotation_matrix
+
             # Application de la rotation
             rotated_points = [tuple(np.dot(rotation_matrix, [x, y])) for x, y in translated_points]
 
@@ -65,6 +68,11 @@ def sides_eq(myPuzzle):
                 # Matrice de rotation de 180 degrés
                 rotation_180 = np.array([[-1, 0], [0, -1]])
 
+                # Cumul des deux rotations
+                rotation_resultante = np.dot(rotation_matrix, rotation_180)
+
+                #print("Rot result :",rotation_resultante)
+
                 # Appliquer la rotation de 180 degrés aux points transformés
                 rotated_points = [tuple(np.dot(rotation_180, [x, y])) for x, y in rotated_points]
 
@@ -73,6 +81,8 @@ def sides_eq(myPuzzle):
 
             # Séparation des coordonnées X et Y
             x_values, y_values = zip(*rotated_points)
+
+            sides[i].set_rotation(rotation_resultante)
 
 
             if windows:
@@ -175,11 +185,9 @@ def sides_eq(myPuzzle):
     pieces = myPuzzle.get_pieces()
 
     for i, piece in enumerate(pieces):
-        sides_eq = drawing_sides(piece)
+        sides_eq = drawing_sides(piece,False)
 
 
-
-        #piece.set_4_sides_eq(sides_eq[0],sides_eq[1],sides_eq[2],sides_eq[3])
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("All sides equations saved ! ")

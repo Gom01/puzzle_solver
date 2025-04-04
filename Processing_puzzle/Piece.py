@@ -27,6 +27,8 @@ class Piece:
 
         self.sides = []
 
+        self.moment = None
+
 
         self.name_piece = ""
 
@@ -66,8 +68,15 @@ class Piece:
     def set_name(self,name):
         self.name_piece = name
         return
-    def get_name_piece(self):
+    def get_name(self):
         return self.name_piece
+
+    def set_moment(self, moment):
+        self.moment = moment
+        return
+
+    def get_moment(self):
+        return self.moment
 
 
 
