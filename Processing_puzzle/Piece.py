@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 from django.utils.timezone import override
 
+from Processing_puzzle.Side import Side
 
 
 class Piece:
@@ -23,27 +24,11 @@ class Piece:
         self.adjusted_contours = None
         self.colors_contour = []
         self.corners = None
-        self.side_1 = None
-        self.side_2 = None
-        self.side_3 = None
-        self.side_4 = None
 
-        self.side_1_info = None
-        self.side_2_info = None
-        self.side_3_info = None
-        self.side_4_info = None
+        self.sides = []
 
-        self.side_1_eq = None
-        self.side_2_eq = None
-        self.side_3_eq = None
-        self.side_4_eq = None
 
         self.name_piece = ""
-
-        self.side_1_name = ""
-        self.side_2_name = ""
-        self.side_3_name = ""
-        self.side_4_name = ""
 
         self.can_be_process = True
 
@@ -71,25 +56,12 @@ class Piece:
         return
 
     def set_sides(self, side1, side2, side3, side4):
-        self.side_1, self.side_2, self.side_3, self.side_4 = side1, side2, side3, side4
+        self.sides = [side1,side2,side3,side4]
         return
 
-    def get_4_sides(self):
-        return self.side_1, self.side_2, self.side_3, self.side_4
+    def get_sides(self):
+        return self.sides
 
-    def set_4_sides_info(self,side1, side2, side3, side4):
-        self.side_1_info, self.side_2_info, self.side_3_info, self.side_4_info = side1, side2, side3, side4
-        return
-
-    def get_4_sides_info(self):
-        return self.side_1_info, self.side_2_info, self.side_3_info, self.side_4_info
-
-    def set_4_sides_eq(self, side1, side2, side3, side4):
-        self.side_1_eq, self.side_2_eq, self.side_3_eq, self.side_4_eq = side1, side2, side3, side4
-        return
-
-    def get_4_sides_eq(self):
-        return self.side_1_eq, self.side_2_eq, self.side_3_eq, self.side_4_eq
 
     def set_name(self,name):
         self.name_piece = name
@@ -97,17 +69,12 @@ class Piece:
     def get_name_piece(self):
         return self.name_piece
 
-    def set_4_sides_name(self,side1, side2, side3, side4):
-        self.side_1_name, self.side_2_name, self.side_3_name, self.side_4_name = side1, side2, side3, side4
-        return
 
-    def get_4_sides_name(self):
-        return self.side_1_name, self.side_2_name, self.side_3_name, self.side_4_name
 
 
 
     def __str__(self):
         return (f"Piece: {self.index}\n  Position: ({self.x},{self.y})\n  Contours: [{self.contours[0]},...]\n  "
-                f"Corners: [{self.corners[0]},...]\n  Side1:[{self.side_1[0]}]\n  Colored Contours : [{self.colors_contour[0]},...]\n  ")
+                f"Corners: [{self.corners[0]},...]\n  Side1:[{self.sides[0]}]\n  Colored Contours : [{self.colors_contour[0]},...]\n  ")
 
 

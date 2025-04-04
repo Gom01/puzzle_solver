@@ -9,14 +9,15 @@ from Processing_puzzle import Puzzle as p
 def sides_eq(myPuzzle):
 
     def drawing_sides(piece, windows=False):
-        sides = piece.get_4_sides()
 
         # Centre de masse du contour global de la pièce
         piece_contour_R = np.array(piece.get_contours()).reshape((-1, 1, 2))
         M1 = cv.moments(piece_contour_R)
 
+        sides = piece.get_sides()
 
-        types = piece.get_4_sides_info()
+
+        types = [sides[0].get_side_info(), sides[1].get_side_info(), sides[2].get_side_info(), sides[3].get_side_info()]
 
         list_eq = []
 
@@ -24,7 +25,7 @@ def sides_eq(myPuzzle):
 
             type = types[i]
 
-            points = sides[i]
+            points = sides[i].get_side_points()
 
             points = np.array(points, dtype=np.int32).reshape((-1, 2))
 
@@ -161,6 +162,9 @@ def sides_eq(myPuzzle):
                 plt.tight_layout()
                 plt.show()
 
+
+            sides[i].set_side_eq((tck2,u2))
+
             list_eq.append((tck2,u2))
 
         return list_eq
@@ -173,15 +177,9 @@ def sides_eq(myPuzzle):
     for i, piece in enumerate(pieces):
         sides_eq = drawing_sides(piece)
 
-        name = f"Pièce {i}"
 
-        piece.set_name(name)
 
-        types = piece.get_4_sides_info()
-
-        piece.set_4_sides_name(f"${name} - ${types[0]}",f"${name} - ${types[1]}",f"${name} - ${types[2]}",f"${name} - ${types[3]}")
-
-        piece.set_4_sides_eq(sides_eq[0],sides_eq[1],sides_eq[2],sides_eq[3])
+        #piece.set_4_sides_eq(sides_eq[0],sides_eq[1],sides_eq[2],sides_eq[3])
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("All sides equations saved ! ")

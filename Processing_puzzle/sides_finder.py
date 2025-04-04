@@ -1,7 +1,6 @@
-from Processing_puzzle import Puzzle as p
 import cv2 as cv
-import numpy as np
 
+from Processing_puzzle.Side import Side
 
 
 def find_sides(myPuzzle):
@@ -77,18 +76,50 @@ def find_sides(myPuzzle):
             # Afficher les côtés et les coins si nécessaire
             display_4_sides(piece.get_color_image(), (side1, side2, side3, side4), list_corners, display, time)
 
+
             return side1, side2, side3, side4
         else:
             return None, None, None, None
 
 
     pieces = myPuzzle.get_pieces()
-    for piece in pieces:
+    for i, piece in enumerate(pieces):
         cnt = piece.get_contours()
         corners = piece.get_corners()
         side1, side2, side3, side4 = find_4_sides(piece, piece.get_corners(), False, 0)
+
         print(side1)
-        piece.set_sides(side1,side2,side3,side4)
+
+        side1_info = Side()
+        side1_info.set_side_points(side1)
+
+        side2_info = Side()
+        side2_info.set_side_points(side2)
+
+        side3_info = Side()
+        side3_info.set_side_points(side3)
+
+        side4_info = Side()
+        side4_info.set_side_points(side4)
+
+        print(side1_info.get_side_points())
+
+        name = f"Pièce {i}"
+
+        piece.set_name(name)
+
+        name_piece = piece.get_name_piece()
+
+        print(name_piece)
+
+        side1_info.set_side_name(f"{name_piece} : side 1")
+        side2_info.set_side_name(f"{name_piece} : side 2")
+        side3_info.set_side_name(f"{name_piece} : side 3")
+        side4_info.set_side_name(f"{name_piece} : side 4")
+
+
+        piece.set_sides(side1_info,side2_info,side3_info,side4_info)
+
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("All sides saved ! ")

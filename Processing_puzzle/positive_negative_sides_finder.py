@@ -11,7 +11,7 @@ from Processing_puzzle import Puzzle as p
 def sides_information(myPuzzle):
 
     def type_of_sides(piece,windows=False):
-        sides = piece.get_4_sides()  # Liste des côtés
+        sides = piece.get_sides()  # Liste des côtés
         img = piece.get_black_white_image()  # Image en noir et blanc
 
         # Centre de masse du contour global de la pièce
@@ -27,7 +27,7 @@ def sides_information(myPuzzle):
 
         for i, side in enumerate(sides):
             # Transformer le côté en un contour OpenCV
-            side_array = np.array(side).reshape((-1, 1, 2))
+            side_array = np.array(side.get_side_points()).reshape((-1, 1, 2))
 
             # Enveloppe convexe du côté
             hull = cv.convexHull(side_array)
@@ -78,7 +78,7 @@ def sides_information(myPuzzle):
                 type_cote = "convexe"
                 color = (0, 255, 0)  # Vert
 
-
+            side.set_side_info(type_cote)
             sides_info.append(type_cote)
 
 
@@ -103,6 +103,8 @@ def sides_information(myPuzzle):
 
                 print(f"Le côté {i} a été traité.")
 
+
+
         return sides_info
 
 
@@ -113,12 +115,6 @@ def sides_information(myPuzzle):
         sides_info = type_of_sides(piece,False)
         print(sides_info)
 
-        side_0 = sides_info[0]
-        side_1 = sides_info[1]
-        side_2 = sides_info[2]
-        side_3 = sides_info[3]
-
-        piece.set_4_sides_info(side_0, side_1, side_2, side_3)
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("All sides info saved ! ")

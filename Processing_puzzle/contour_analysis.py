@@ -10,8 +10,8 @@ pieces = puzzle.get_pieces()
 for idx, piece in enumerate(pieces):
     img = piece.get_black_white_image()
 
-    side1, side2, side3, side4 = piece.get_4_sides()
-    print(side1)
+    #side1, side2, side3, side4 = piece.get_4_sides()
+    #print(side1)
 
 
 
