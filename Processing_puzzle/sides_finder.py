@@ -10,7 +10,8 @@ def find_sides(myPuzzle):
             x, y = corner
             return x != -1 and y != -1
 
-        def display_4_sides(img, sides, corners, window, time):
+        def display_4_sides(img_c, sides, corners, window, time):
+            img = img_c.copy()
             side1, side2, side3, side4 = sides
             corner1, corner2, corner3, corner4 = corners
             colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]  # Bleu, Vert, Rouge, Jaune
@@ -124,20 +125,3 @@ def find_sides(myPuzzle):
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("All sides saved ! ")
     return()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
