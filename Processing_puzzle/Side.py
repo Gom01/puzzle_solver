@@ -56,17 +56,19 @@ class Side:
         return self.side_eq
 
     def set_piece_match(self, piece_match):
-        self.piece_match = piece_match
+        if piece_match is None:
+            self.piece_match = piece_match
         return
 
     def set_side_match(self, side_match):
-        self.side_match = side_match
+        if side_match is None:
+            self.side_match = side_match
         return
 
     def get_piece_match(self):
         return self.piece_match
 
-    def get_side_match(self, side_match):
+    def get_side_match(self):
         return self.side_match
 
     def set_rotation(self, rotation):

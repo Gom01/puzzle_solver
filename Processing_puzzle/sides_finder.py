@@ -1,10 +1,9 @@
 import cv2 as cv
+import numpy as np
 
 from Processing_puzzle.Side import Side
 
-
 def find_sides(myPuzzle):
-
     def find_4_sides(piece, list_corners, display=False, time=0):
         def check_corners(corner):
             x, y = corner
@@ -37,6 +36,7 @@ def find_sides(myPuzzle):
         if all(check_corners(corner) for corner in list_corners):
             # Initialisation des côtés
             side1, side2, side3, side4 = [], [], [], []
+            side1_color, side2_color, side3_color, side4_color = [], [], [], []
 
             # Définition de l'ordre des coins, pour éviter toute confusion
             corners = list_corners[:]
@@ -71,57 +71,60 @@ def find_sides(myPuzzle):
                 # Ajouter le point au côté actuel
                 current_side.append(point)
 
+                # Ajouter la couleur au côté
+                if current_side == side1:
+                    side1_color.append(piece.get_color_contour()[index])
+                elif current_side == side2:
+                    side2_color.append(piece.get_color_contour()[index])
+                elif current_side == side3:
+                    side3_color.append(piece.get_color_contour()[index])
+                elif current_side == side4:
+                    side4_color.append(piece.get_color_contour()[index])
+
                 # Avancer dans le contour
                 index = (index + 1) % len(contour)
 
             # Afficher les côtés et les coins si nécessaire
             display_4_sides(piece.get_color_image(), (side1, side2, side3, side4), list_corners, display, time)
 
+            # Now you can create Side objects and set colors
+            side1_info = Side()
+            side1_info.set_side_points(side1)
+            side1_info.set_side_colors(side1_color)
 
-            return side1, side2, side3, side4
+            side2_info = Side()
+            side2_info.set_side_points(side2)
+            side2_info.set_side_colors(side2_color)
+
+            side3_info = Side()
+            side3_info.set_side_points(side3)
+            side3_info.set_side_colors(side3_color)
+
+            side4_info = Side()
+            side4_info.set_side_points(side4)
+            side4_info.set_side_colors(side4_color)
+
+            return side1_info, side2_info, side3_info, side4_info
         else:
             return None, None, None, None
 
-
     pieces = myPuzzle.get_pieces()
     for i, piece in enumerate(pieces):
-        cnt = piece.get_contours()
         corners = piece.get_corners()
-        side1, side2, side3, side4 = find_4_sides(piece, piece.get_corners(), False, 0)
-
-        print(side1)
-
-        side1_info = Side()
-        side1_info.set_side_points(side1)
-
-        side2_info = Side()
-        side2_info.set_side_points(side2)
-
-        side3_info = Side()
-        side3_info.set_side_points(side3)
-
-        side4_info = Side()
-        side4_info.set_side_points(side4)
+        side1_info, side2_info, side3_info, side4_info = find_4_sides(piece, piece.get_corners(), False, 0)
 
         print(side1_info.get_side_points())
 
         name = f"Pièce {i}"
-
         piece.set_name(name)
 
-        name_piece = piece.get_name()
+        side1_info.set_side_name(f"{name} : side 1")
+        side2_info.set_side_name(f"{name} : side 2")
+        side3_info.set_side_name(f"{name} : side 3")
+        side4_info.set_side_name(f"{name} : side 4")
 
-        print(name_piece)
-
-        side1_info.set_side_name(f"{name_piece} : side 1")
-        side2_info.set_side_name(f"{name_piece} : side 2")
-        side3_info.set_side_name(f"{name_piece} : side 3")
-        side4_info.set_side_name(f"{name_piece} : side 4")
-
-
-        piece.set_sides(side1_info,side2_info,side3_info,side4_info)
-
+        piece.set_sides(side1_info, side2_info, side3_info, side4_info)
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
-    print("All sides saved ! ")
-    return()
+    print("All sides saved!")
+    return
