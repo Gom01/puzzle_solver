@@ -6,7 +6,7 @@ from Processing_puzzle.Side import Side
 
 
 class Piece:
-    def __init__(self, image_black_white,image_color, contours, x, y, index):
+    def __init__(self, image_black_white,image_color, contours, index):
         """
         Initialise une pièce de puzzle.
         :param image_black_white: L'image de la pièce avec le fond noir et l'intérieur blanc.
@@ -17,10 +17,11 @@ class Piece:
         self.image_black_white = image_black_white
         self.image_color = image_color
         self.contours = contours
-        self.x = x
-        self.y = y
         self.index = index
 
+
+        self.x = None
+        self.y = None
         self.adjusted_contours = None
         self.colors_contour = []
         self.corners = None

@@ -1,7 +1,7 @@
 import cv2 as cv
+import scipy
 import numpy as np
-from Processing_puzzle.Piece import Piece
-from Puzzle import Puzzle
+import Piece as piece
 from Processing_puzzle.Tools import Tools
 
 '''
@@ -10,129 +10,104 @@ basics information on the pieces :
 - Black and White Piece
 - Colored piece image
 - Contours
-- Position : x
-- Position : y
 '''
 def parse_image(image_path, puzzle):
 
-    #Basics settings :
-    WINDOW_SIZE = (1000, 800)
-    WINDOW_SIZE_PIECE = (200, 200)
-    X_PERCENT = 50
-    MARGIN_PERCENT = 1
-
-
+    #Basics tools and settings (size image and margin arround)
     tools = Tools()
+    new_width = 500
+    margin_scale = 1.10
+    scale_factor = 5.0
 
+
+    #Modifying the size of the image
     image = cv.imread(image_path)
-
-    #Transformations
-    im_gray = tools.convert_to_grayscale(image, window=False, window_size=WINDOW_SIZE, time=0)
-    im_thresh = tools.apply_otsu_threshold(im_gray, window=False, window_size=WINDOW_SIZE, time=0)
-    im_clean = tools.remove_noise(im_thresh, kernel_size=(3, 3), iterations=20, window=False, window_size=WINDOW_SIZE, time=0)
-
-    # Trouver les contours
-    contours,_ = tools.find_contours(image,im_clean, window=False, window_size=WINDOW_SIZE, time=0)
-    im_with_black_background,contours_filtered,min_valid_area,max_valid_area  = tools.filter_contours_by_area(image,contours, 1800, window=False, window_size=WINDOW_SIZE, time=0)
-
-    # Stocker les contours des pièces individuelles
-    assembled_pieces = []
-    all_piece_contours = []
-    i = 0
-    # Détourage de chaque pièce
-    for contour_piece in contours_filtered:
-
-        x, y, w, h, piece_image = tools.get_bounding_rect(im_with_black_background,contour_piece,10,False,WINDOW_SIZE_PIECE,1000)
-        #Filtres
-        piece_image_gray = tools.convert_to_grayscale(piece_image, window=False, window_size=WINDOW_SIZE_PIECE, time=1000)
-        piece_image_thresh = tools.apply_otsu_threshold(piece_image_gray, window=False, window_size=WINDOW_SIZE_PIECE, time=1000)
-        im_piece_clean = tools.remove_noise(piece_image_thresh, kernel_size=(3, 3), iterations=2, window=False, window_size=WINDOW_SIZE_PIECE, time=1000)
-
-        # Détection des contours
-        contours_piece, _ = cv.findContours(im_piece_clean, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        im_piece_contours = piece_image.copy()
-        cv.drawContours(im_piece_contours, contours_piece, -1, (0, 255, 0), 2)
-        # Filtrer contours des pièces avec la médiane
-        contours_filtered_p = [cnt_p2 for cnt_p2 in contours_piece if
-                               min_valid_area <= cv.contourArea(cnt_p2) <= max_valid_area]
-
-        # Dessiner contours filtrés
-        im_contours_filtered_p = piece_image.copy()
-        cv.drawContours(im_contours_filtered_p, contours_filtered_p, -1, (0, 255, 0), 2)
-        # Créer un masque pour les contours filtrés de la pièce
-        piece_mask = np.zeros(piece_image.shape[:2], dtype=np.uint8)
-        cv.drawContours(piece_mask, contours_filtered_p, -1, (255), thickness=cv.FILLED)
-
-        # Appliquer le masque inversé pour transformer l'extérieur des contours en noir
-        piece_with_black_background = cv.bitwise_and(piece_image, piece_image, mask=piece_mask)
-
-        # Définir la taille de la marge (en pixels)
-        # marge_noir = 20  # Par exemple, marge de 20 pixels
-
-        # Remplacement de l'intérieur par du blanc
-        piece_with_black_background_with_white_inside = piece_with_black_background.copy()
-        piece_with_black_background_with_white_inside[np.where(piece_mask == 255)] = [255, 255, 255]
-
-        # Affichage combiné en une seule fenêtre
-        resultat_final = np.hstack((
-            cv.resize(cv.cvtColor(piece_image_gray, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-            cv.resize(cv.cvtColor(piece_image_thresh, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-            cv.resize(cv.cvtColor(im_piece_clean, cv.COLOR_GRAY2BGR), WINDOW_SIZE_PIECE),
-            cv.resize(im_piece_contours, WINDOW_SIZE_PIECE),
-            cv.resize(im_contours_filtered_p, WINDOW_SIZE_PIECE),
-            cv.resize(piece_with_black_background, WINDOW_SIZE_PIECE)
-            # Affichage avec fond noir
-        ))
-        i += 1
-        #cv.imshow(f'Contours de la pièce {x},{y}', resultat_final)
-        #cv.waitKey(500)
-        #cv.destroyAllWindows()
-        # Créer l'objet Piece_Puzzle avec toutes les informations
-        piece = Piece(piece_with_black_background_with_white_inside,piece_with_black_background,convert_contour(contours_filtered_p, x ,y),x,y, i)
-
-        puzzle.add_piece(piece)
-
-    # Ajouter les contours globaux
-        assembled_pieces.append(im_contours_filtered_p)
-        for cnt in contours_filtered_p:
-            cnt += [x, y]
-            all_piece_contours.append(cnt)
+    (h, w) = image.shape[:2]
+    scale = new_width / w
+    new_height = int(h * scale)
+    image = cv.resize(image, (new_width, new_height))
 
 
+    # Transformations to find contours of the 24 pieces
+    im_gray = tools.convert_to_grayscale(image, window=False, window_size=(new_width, new_height), time=0)
+    im_thresh = tools.apply_otsu_threshold(im_gray, window=False, window_size=(new_width, new_height), time=0)
+    im_clean = tools.remove_noise(im_thresh, (5, 5), (2, 2), iterations=20, window=False, window_size=(new_width, new_height),time=0)
+    contours, _ = tools.find_contours(image, im_clean, window=False, window_size=(new_width, new_height), time=0)
 
-    # Dessiner les contours globaux sélectionnés
-    im_all_contours = image.copy()
-    cv.drawContours(im_all_contours, all_piece_contours, -1, (0, 255, 255), 10)
 
-    # Afficher le résultat final
-    #cv.imshow('Image all', cv.resize(image, WINDOW_SIZE))
-    #cv.imshow('Contours filtrés', cv.resize(im_with_black_background, WINDOW_SIZE))
-    #cv.imshow('Contours sélectionnés selon X% de la médiane', cv.resize(im_all_contours, WINDOW_SIZE))
-    #cv.waitKey(0)
-    #cv.destroyAllWindows()
+    #Go through all the pieces
+    for i, cnt in enumerate(contours):
 
-    # Redimensionner les images à la même taille
-    height = max(image.shape[0], im_with_black_background.shape[0], im_all_contours.shape[0])
-    width = max(image.shape[1], im_with_black_background.shape[1], im_all_contours.shape[1])
+        #Detouring the pieces:
+        rect = cv.minAreaRect(cnt)
+        box = cv.boxPoints(rect)
+        box = np.int64(box)
+        box_float = np.float32(box)
+        center = np.mean(box_float, axis=0)
+        expanded_box = (box_float - center) * margin_scale + center
+        expanded_box = np.float32(expanded_box)
 
-    # Redimensionner les images pour qu'elles aient toutes la même taille
-    im_resized = cv.resize(image, (width, height))
-    im_with_black_background_resized = cv.resize(im_with_black_background, (width, height))
-    im_all_contours_resized = cv.resize(im_all_contours, (width, height))
+        #To see what's going on the base image
+        #cv.drawContours(image, [np.int32(expanded_box)], 0, (0, 255, 0), 2)
 
-    # Combiner les images horizontalement
-    final_image = np.hstack((im_resized, im_with_black_background_resized, im_all_contours_resized))
+        #Resize each detouring (to have the shape of the piece)
+        width = int(rect[1][0] * margin_scale)
+        height = int(rect[1][1] * margin_scale)
+        dst_pts = np.array([[0, height - 1],[0, 0],[width - 1, 0],[width - 1, height - 1]], dtype="float32")
+        M = cv.getPerspectiveTransform(expanded_box, dst_pts)
+        warped = cv.warpPerspective(image, M, (width, height))
+        (h, w) = warped.shape[:2]
+        new_size = (int(w * scale_factor), int(h * scale_factor))
+        piece_image = cv.resize(warped, new_size, interpolation=cv.INTER_CUBIC)
+        piece_image_2 = piece_image.copy()  # For green dots
+        piece_image_3 = piece_image.copy()  # For masked color
 
-    # Afficher le résultat final
-    #cv.imshow('Image all', cv.resize(final_image, WINDOW_SIZE))
-    #cv.waitKey(10)
-    #cv.destroyAllWindows()
+        # Transformation on the pieces
+        gray_piece = tools.convert_to_grayscale(piece_image, window=False, window_size=new_size, time=0)
+        thresh_piece = tools.apply_otsu_threshold(gray_piece, window=False, window_size=new_size, time=0)
+        cleaned_piece = tools.remove_noise(thresh_piece, (4, 4), (15, 15), iterations=20, window=False,window_size=new_size, time=0)
+        contoured_piece, _ = tools.find_contours(piece_image, cleaned_piece, window=False, window_size=new_size, time=0)
 
-    # Sauvegarder le puzzle dans un fichier pickle
+        # Keep only the important contour
+        contoured_piece = max(contoured_piece, key=cv.contourArea)
+
+        # Smooth contour and convert it to points
+        contoured_piece = convert_contour(contoured_piece)
+        smoothed = gaussian_smooth(contoured_piece)
+
+        # Create mask
+        contour_np = np.array(smoothed, dtype=np.int32).reshape((-1, 1, 2))
+        mask = np.zeros(piece_image_3.shape[:2], dtype=np.uint8)
+        cv.drawContours(mask, [contour_np], -1, 255, cv.FILLED)
+
+        # Apply mask to color image
+        masked_image = cv.bitwise_and(piece_image_2, piece_image_2, mask=mask)
+
+        # Black and white binary image
+        binary_image = np.zeros_like(mask)
+        cv.drawContours(binary_image, [contour_np], -1, 255, cv.FILLED)
+
+        # Show results
+        #cv2.imshow("Masked Color", masked_image)
+        #cv2.imshow("Black & White Mask", binary_image)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+
+        puzzle.add_piece(piece.Piece(binary_image, masked_image, smoothed, i))
     puzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
-    print("Puzzle correctly parsed and saved ! ")
-    return()
+    print("Puzzle parsed and saved correctly!")
+    return
 
-def convert_contour(contours, x, y):
-    contour_points = [tuple(pt[0]) for pt in contours[0]]
+
+def gaussian_smooth(points, sigma=5):
+    points_np = np.array(points, dtype=np.float32)
+    x, y = points_np[:, 0], points_np[:, 1]
+
+    x_smooth = scipy.ndimage.gaussian_filter1d(x, sigma)
+    y_smooth = scipy.ndimage.gaussian_filter1d(y, sigma)
+
+    return list(zip(x_smooth.astype(int), y_smooth.astype(int)))
+
+def convert_contour(contours):
+    contour_points = [tuple(pt[0]) for pt in contours]
     return contour_points

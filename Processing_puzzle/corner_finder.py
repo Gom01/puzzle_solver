@@ -1,6 +1,7 @@
-import cv2 as cv2
+import cv2 as cv
 import numpy as np
-
+import math
+import Puzzle as p
 
 '''
     Function raw_corners : Find the four corners of a piece, if not found return some close value these points
@@ -8,103 +9,183 @@ import numpy as np
     Input: black and white image of a piece
     Output: 4 Corner coordinates [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
 '''
-def raw_corners(img):
+def raw_corners(colored_img, contours):
+    colored_img = colored_img.copy()
+    colored_img2 = colored_img.copy()
+    colored_img3 = colored_img.copy()
+    contour_np = np.array(contours, dtype=np.int32).reshape((-1, 1, 2))
+    moments = cv.moments(contour_np)
+    cx = int(moments['m10'] / moments['m00'])
+    cy = int(moments['m01'] / moments['m00'])
 
-    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #Step 2 : Make raw contours and find important points
+    epsilon = 0.005 * cv.arcLength(contour_np, True)
+    approx = cv.approxPolyDP(contour_np, epsilon, True)
+    hull = cv.convexHull(approx)
 
-    #Step 1 : Blur the image to have a better contrast
-    blurred_image = cv2.GaussianBlur(gray_img, (9, 9), 0)
-    blurred_image = cv2.GaussianBlur(blurred_image, (9, 9), 0)
+    # #cv2.polylines(colored_img, [hull], isClosed=True, color=(0, 255, 0), thickness=2)
+    # for pt in hull:
+    #     cv.circle(colored_img, tuple(pt[0]), 6, (0, 255, 0), -1)
+    # cv.imshow("Important points", colored_img)
+    # cv.waitKey(0)
 
-    #Step 2 : Find all the corners of an image. Should always have the 4 corners
-    features = cv2.goodFeaturesToTrack(blurred_image, 15, 0.02, 50, useHarrisDetector=True, k=0.015)
-    #print(f"Number of points after goodFeaturesToTrack : {len(features)}")
-    #Step 3 : Remove all the points inside the piece (convex form)
-    if features is None:
-        print("Something wierd happened (black image !?)")
-        return [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
-    features = np.int64(features)
-    hull = cv2.convexHull(features)
-    #print(f"Number of points after convex hull : {len(hull)}")
+    def distance_point_to_line(x1, y1, x2, y2, cx, cy):
+        """Returns the perpendicular distance from point (cx, cy) to the line through (x1,y1)-(x2,y2)."""
+        numerator = abs((y2 - y1) * cx - (x2 - x1) * cy + x2 * y1 - y2 * x1)
+        denominator = math.hypot(y2 - y1, x2 - x1)
+        return numerator / denominator if denominator != 0 else float('inf')
 
-    #Step 4 : Use the dot product (if close to zero => points are ortho) (all points)
-    dots  = {}
-    for i in range(0, len(hull)):
-        A = hull[i][0]
-        for j in range(0, len(hull)):
-            B = hull[j][0]
-            for k in range(0, len(hull)):
-                C = hull[k][0]
-                v = C - A
-                u = B - A
-                #Shouldn't be the same coordinate (==0)
-                if (B[0], B[1]) != (A[0], A[1]) and (B[0], B[1]) != (C[0], C[1]) and ((A[0], A[1]) != (C[0], C[1])):
-                    dot = abs(np.dot(v,u))
-                    if dot not in dots:
-                        dots[dot] = {tuple(A), tuple(B), tuple(C)}
-                        #print(f"A: {hull[i][0]} B:  {hull[j][0]} C: {hull[k][0]} prod: {dot}")
-    #Should use only the best values (closest two zero)
-    sorted_dots = {k: dots[k] for k in sorted(dots)}
-    points_dot = []
-    for index, (key, value) in enumerate(sorted_dots.items()):
-        if index < 6:
-            value = list(value)
-            if value[0] not in points_dot:
-                points_dot.append(value[0])
-            if value[1] not in points_dot:
-                points_dot.append(value[1])
-            if value[2] not in points_dot:
-                points_dot.append(value[2])
-    #print(f"Number of points after dot : {len(points_dot)}")
+    def get_points_through_centroid(points, cx, cy, radius=40):
+        """Returns a list of unique points where lines between them pass within radius of centroid."""
+        valid_points = set()
+        for i, p1 in enumerate(points):
+            x1, y1 = p1
+            for j, p2 in enumerate(points):
+                if i >= j:
+                    continue
+                x2, y2 = p2
+                dist = distance_point_to_line(x1, y1, x2, y2, cx, cy)
+                if dist <= radius:
+                    valid_points.add(p1)
+                    valid_points.add(p2)
+        return list(valid_points)
+
+    points = [tuple(pt[0]) for pt in hull]
+    important_points  = get_points_through_centroid(points, cx, cy, radius=40)
+
+    # for point in important_points :
+    #     cv.circle(colored_img, point, 6, (0, 0, 255), -1)
+    # cv.imshow("Important points", colored_img)
+    # cv.waitKey(0)
 
 
-    #Step 5 : Use distance to remove all the middle points (between two corners)
     def dist(p1, p2):
         return int(np.sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
-    threshold = 10
-    points_middle = points_dot.copy()
-    for i in range(0, len(points_dot)):
-        A = points_dot[i]
-        for j in range(0, len(points_dot)):
-            B = points_dot[j]
-            for k in range(0, len(points_dot)):
-                C = points_dot[k]
+
+    threshold = 1
+    points_middle = important_points.copy()
+    for i in range(0, len(important_points)):
+        A = important_points[i]
+        for j in range(0, len(important_points)):
+            B = important_points[j]
+            for k in range(0, len(important_points)):
+                C = important_points[k]
                 if (A[0], A[1]) != (B[0], B[1]) and (A[0], A[1]) != (C[0], C[1]) and (C[0], C[1]) != (B[0], B[1]):
-                    if (dist(A,B) + dist(B,C)) - threshold <= dist(A,C) <= (dist(A,B) + dist(B,C)) + threshold:
-                        #print(f"{round(dist(A, C))} = {round(dist(A, B)) + round(dist(B, C))}")
-                        #cv2.circle(img, A, 8, (0, 255, 0), -1)
+                    if (dist(A, B) + dist(B, C)) - threshold <= dist(A, C) <= (dist(A, B) + dist(B, C)) + threshold:
+                        # print(f"{round(dist(A, C))} = {round(dist(A, B)) + round(dist(B, C))}")
+                        # cv2.circle(img, A, 8, (0, 255, 0), -1)
                         if B in points_middle:
                             points_middle.remove(B)
-    #print(f"Number of points removing middle points: {len(new_corners)}")
+
+    # for point in points_middle :
+    #     cv.circle(colored_img, point, 7, (255, 0, 255), -1)
+    # cv.imshow("Important points", colored_img)
+    # cv.waitKey(0)
+
+    def order_points_by_angle(all_points):
+        # Calculate the centroid (center) of the points
+        points = np.array(all_points)
+        centroid = np.mean(points, axis=0)
+
+        # Function to calculate angle of a point relative to the centroid
+        def calculate_angle(point):
+            dx, dy = point[0] - centroid[0], point[1] - centroid[1]
+            return np.arctan2(dy, dx)  # Returns angle in radians
+
+        # Calculate the angles for each point relative to the centroid
+        angles = [calculate_angle(pt) for pt in points]
+
+        # Sort points by their angle
+        sorted_points = [pt for _, pt in sorted(zip(angles, points), key=lambda x: x[0])]
+
+        return sorted_points
+
+    def remove_close_points(all_points, image):
+        # Order the points in a consistent order (e.g., clockwise)
+        ordered_points = order_points_by_angle(all_points)
+
+        points = np.array(ordered_points)
+
+        # Step 1: Calculate pairwise distances between consecutive points (i -> i+1)
+        pairwise_distances = []
+        for i in range(len(points) - 1):
+            distance = np.linalg.norm(points[i] - points[i + 1])
+            pairwise_distances.append(distance)
+
+        # Also, add the distance between the last and the first point (to close the loop)
+        distance = np.linalg.norm(points[len(points) - 1] - points[0])
+        pairwise_distances.append(distance)
+
+        # Step 2: Find the maximum distance between consecutive points
+        max_distance = np.max(pairwise_distances)
+
+        # Set threshold to 80% of the max distance (you can adjust this based on your requirements)
+        threshold = max_distance / 1.3
+
+        # Step 3: Visualize threshold
+        for i, point in enumerate(points):
+            if i < len(points) - 1:
+                next_point = points[i + 1]
+            else:
+                next_point = points[0]
+            distance = np.linalg.norm(point - next_point)
+            if distance >= threshold:
+                color = (0, 255, 0)  # Green: Points that will be kept
+            else:
+                color = (0, 0, 255)  # Red: Points that will be removed
+            cv.line(image, tuple(point), tuple(next_point), color, 2)
+
+        # Step 4: Filter points: keep only those points whose distance to neighbors is >= threshold
+        filtered_points = []
+        for i, point in enumerate(points):
+            if i > 0:
+                distance_to_prev = np.linalg.norm(point - points[i - 1])
+            else:
+                distance_to_prev = float('inf')  # First point has no previous neighbor
+
+            if i < len(points) - 1:
+                distance_to_next = np.linalg.norm(point - points[i + 1])
+            else:
+                distance_to_next = float('inf')  # Last point has no next neighbor
+
+            # Keep the point only if both distances to neighbors are >= threshold
+            if distance_to_prev >= threshold or distance_to_next >= threshold:
+                filtered_points.append(tuple(point))
+
+        return filtered_points, image
+
+    filtered_points, image_result = remove_close_points(points_middle, colored_img2)
+
+    # for point in filtered_points :
+    #     cv.circle(image_result, point, 7, (0, 0, 255), -1)
+    # cv.imshow("Important points", image_result)
+    # cv.waitKey(0)
+
+    contour_np = np.array(filtered_points, dtype=np.int32).reshape((-1, 1, 2))
+
+    def get_main_corners_from_min_rect(contour, search_radius=20):
+        rect = cv.minAreaRect(contour)  # center, (w, h), angle
+        box = cv.boxPoints(rect)  # 4 corner points of rotated rectangle
+        box = np.intp(box)
+
+        # Refine: find the closest actual contour point for each box corner
+        refined_corners = []
+        for corner in box:
+            dists = np.linalg.norm(contour.reshape(-1, 2) - corner, axis=1)
+            closest_pt = contour.reshape(-1, 2)[np.argmin(dists)]
+            refined_corners.append(tuple(closest_pt))
+
+        return refined_corners
 
 
-    #Step 6 : Get final corners based on point missing (calculate missing coordinates)
-    def calculate_missing(points_middle):
-        threshold = 45
-        for i in range(0, len(points_middle)):
-            A = points_middle[i]
-            for j in range(0, len(points_middle)):
-                B = points_middle[j]
-                for k in range(0, len(points_middle)):
-                    C = points_middle[k]
-                    if (A[0], A[1]) != (B[0], B[1]) and (A[0], A[1]) != (C[0], C[1]) and (C[0], C[1]) != (B[0], B[1]):
-                        Ax,Ay = A
-                        Bx, By = B
-                        Cx, Cy = C
-                        x_length = Bx + Cx - Ax
-                        y_length = By + Cy - Ay
+    points = get_main_corners_from_min_rect(contour_np)
 
-                        for c in points_middle:
-                            if x_length - threshold <=  c[0] <= x_length + threshold:
-                                if y_length - threshold <= c[1] <= y_length + threshold:
-                                    finalCorners = [A,B,C,c]
-                                    return(finalCorners)
-        if len(points_middle) >= 4:
-            return [points_middle[0], points_middle[1], points_middle[2], points_middle[3]]
-        else:
-            return [[-1,-1],[-1,-1],[-1,-1],[-1,-1]]
+    contour_np = np.array(points_middle, dtype=np.int32).reshape((-1, 1, 2))
 
-    return calculate_missing(points_middle)
+    # for pt in points:
+    #     cv.circle(colored_img3, pt, 10, (255, 255, 0), -1)
+    # cv.imshow('Final', colored_img3)
+    # cv.waitKey(0)
 
 
 '''
@@ -114,55 +195,17 @@ def find_corners(myPuzzle):
         pieces = myPuzzle.get_pieces()
 
         for idx, piece in enumerate(pieces):
-            img = piece.get_black_white_image()
+            black_white_img = piece.get_black_white_image()
+            img = piece.get_color_image()
+
             contours = piece.get_contours()
-            rawCorners = raw_corners(img)
-
-            dist_mini_corners_1 = float('inf')
-            dist_mini_corners_2 = float('inf')
-            dist_mini_corners_3 = float('inf')
-            dist_mini_corners_4 = float('inf')
-
-            corner_adjusted_1 = rawCorners[0]
-            corner_adjusted_2 = rawCorners[1]
-            corner_adjusted_3 = rawCorners[2]
-            corner_adjusted_4 = rawCorners[3]
-
-            x0, y0 = rawCorners[0]
-            x1, y1 = rawCorners[1]
-            x2, y2 = rawCorners[2]
-            x3, y3 = rawCorners[3]
-
-            if rawCorners[0] != [-1,-1]:
-                for point in contours:
-                    x, y = point[0], point[1]
-
-                    dist_corner_1 = ((x - x0)**2.0 + (y - y0)**2.0)**(1.0/2.0)
-                    dist_corner_2 = ((x - x1)**2.0 + (y - y1)**2.0)**(1.0 / 2.0)
-                    dist_corner_3 = ((x - x2)**2.0 + (y - y2)**2.0)**(1.0 / 2.0)
-                    dist_corner_4 = ((x - x3)**2.0 + (y - y3)**2.0)**(1.0 / 2.0)
-
-                    if dist_corner_1 < dist_mini_corners_1:
-                         dist_mini_corners_1 = dist_corner_1
-                         corner_adjusted_1 = (x,y)
-
-                    if dist_corner_2 < dist_mini_corners_2:
-                           dist_mini_corners_2 = dist_corner_2
-                           corner_adjusted_2 = (x,y)
-
-                    if dist_corner_3 < dist_mini_corners_3:
-                        dist_mini_corners_3 = dist_corner_3
-                        corner_adjusted_3 = (x,y)
-
-                    if dist_corner_4 < dist_mini_corners_4:
-                        dist_mini_corners_4 = dist_corner_4
-                        corner_adjusted_4 = (x,y)
-
-
-                piece.set_corners([corner_adjusted_1,corner_adjusted_2,corner_adjusted_3,corner_adjusted_4])
-            else:
-                piece.set_corners([[-1,-1],[-1,-1],[-1,-1], [-1,-1]])
+            rawCorners = raw_corners(img, contours)
 
         myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
         print("Corners saved ! ")
         return()
+
+
+puzzle = p.Puzzle()
+puzzle.load_puzzle('../Processing_puzzle/res/puzzle.pickle')
+find_corners(puzzle)
