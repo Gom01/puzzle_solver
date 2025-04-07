@@ -1,7 +1,6 @@
 import cv2 as cv
-import numpy as np
 
-from Processing_puzzle.Side import Side
+from Processing_puzzle.side import Side
 
 def find_sides(myPuzzle):
     def find_4_sides(piece, list_corners, display=False, time=0):
@@ -113,8 +112,6 @@ def find_sides(myPuzzle):
         corners = piece.get_corners()
         side1_info, side2_info, side3_info, side4_info = find_4_sides(piece, piece.get_corners(), False, 0)
 
-        print(side1_info.get_side_points())
-
         name = f"Pièce {i}"
         piece.set_name(name)
 
@@ -126,5 +123,5 @@ def find_sides(myPuzzle):
         piece.set_sides(side1_info, side2_info, side3_info, side4_info)
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
-    print("All sides saved!")
+    print("Sides found...")
     return

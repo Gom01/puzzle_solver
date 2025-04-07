@@ -1,7 +1,5 @@
 import cv2 as cv
 
-from Processing_puzzle.Side import Side
-
 from Processing_puzzle import Puzzle as p
 
 # Charger et traiter le puzzle

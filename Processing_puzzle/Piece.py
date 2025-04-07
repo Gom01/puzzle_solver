@@ -1,18 +1,9 @@
-import cv2 as cv
-import numpy as np
-from django.utils.timezone import override
-
-from Processing_puzzle.Side import Side
-
-
 class Piece:
     def __init__(self, image_black_white,image_color, contours, index):
         """
         Initialise une pièce de puzzle.
         :param image_black_white: L'image de la pièce avec le fond noir et l'intérieur blanc.
         :param contours: Les contours filtrés de la pièce.
-        :param x: Coordonnée x de la pièce.
-        :param y: Coordonnée y de la pièce.
         """
         self.image_black_white = image_black_white
         self.image_color = image_color

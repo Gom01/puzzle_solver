@@ -120,7 +120,7 @@ def sides_information(myPuzzle):
 
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
-    print("All sides info saved ! ")
+    print("Sides info found...")
     return ()
 
 

@@ -1,16 +1,18 @@
 import cv2 as cv
 import scipy
 import numpy as np
-import Piece as piece
+
+from Processing_puzzle.Piece import Piece
 from Processing_puzzle.Tools import Tools
 
 '''
 This function takes the image (taken with a phone) and a puzzle object and then create pickle file containing
 basics information on the pieces :  
-- Black and White Piece
-- Colored piece image
+- Black and White image
+- Colored image
 - Contours
 '''
+
 def parse_image(image_path, puzzle):
 
     #Basics tools and settings (size image and margin arround)
@@ -19,8 +21,7 @@ def parse_image(image_path, puzzle):
     margin_scale = 1.10
     scale_factor = 5.0
 
-
-    #Modifying the size of the image
+    #Modifying the size of the image (so I can see it on my screen)
     image = cv.imread(image_path)
     (h, w) = image.shape[:2]
     scale = new_width / w
@@ -33,12 +34,12 @@ def parse_image(image_path, puzzle):
     im_thresh = tools.apply_otsu_threshold(im_gray, window=False, window_size=(new_width, new_height), time=0)
     im_clean = tools.remove_noise(im_thresh, (5, 5), (2, 2), iterations=20, window=False, window_size=(new_width, new_height),time=0)
     contours, _ = tools.find_contours(image, im_clean, window=False, window_size=(new_width, new_height), time=0)
-
+    print(f"Number of pieces found : {len(contours)}")
 
     #Go through all the pieces
     for i, cnt in enumerate(contours):
 
-        #Detouring the pieces:
+        #Detouring the pieces from the main image:
         rect = cv.minAreaRect(cnt)
         box = cv.boxPoints(rect)
         box = np.int64(box)
@@ -50,7 +51,8 @@ def parse_image(image_path, puzzle):
         #To see what's going on the base image
         #cv.drawContours(image, [np.int32(expanded_box)], 0, (0, 255, 0), 2)
 
-        #Resize each detouring (to have the shape of the piece)
+
+        #Create colored image (with margins)
         width = int(rect[1][0] * margin_scale)
         height = int(rect[1][1] * margin_scale)
         dst_pts = np.array([[0, height - 1],[0, 0],[width - 1, 0],[width - 1, height - 1]], dtype="float32")
@@ -62,20 +64,20 @@ def parse_image(image_path, puzzle):
         piece_image_2 = piece_image.copy()  # For green dots
         piece_image_3 = piece_image.copy()  # For masked color
 
-        # Transformation on the pieces
+        # Transformation on each piece (find contour)
         gray_piece = tools.convert_to_grayscale(piece_image, window=False, window_size=new_size, time=0)
         thresh_piece = tools.apply_otsu_threshold(gray_piece, window=False, window_size=new_size, time=0)
         cleaned_piece = tools.remove_noise(thresh_piece, (4, 4), (15, 15), iterations=20, window=False,window_size=new_size, time=0)
         contoured_piece, _ = tools.find_contours(piece_image, cleaned_piece, window=False, window_size=new_size, time=0)
 
-        # Keep only the important contour
+        # Keep only the important contour (which contains maximum of points)
         contoured_piece = max(contoured_piece, key=cv.contourArea)
 
         # Smooth contour and convert it to points
         contoured_piece = convert_contour(contoured_piece)
         smoothed = gaussian_smooth(contoured_piece)
 
-        # Create mask
+        # Create mask for black and white and colored image
         contour_np = np.array(smoothed, dtype=np.int32).reshape((-1, 1, 2))
         mask = np.zeros(piece_image_3.shape[:2], dtype=np.uint8)
         cv.drawContours(mask, [contour_np], -1, 255, cv.FILLED)
@@ -93,9 +95,9 @@ def parse_image(image_path, puzzle):
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
 
-        puzzle.add_piece(piece.Piece(binary_image, masked_image, smoothed, i))
+        puzzle.add_piece(Piece(binary_image, masked_image, smoothed, i))
     puzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
-    print("Puzzle parsed and saved correctly!")
+    print("Puzzle parsed...")
     return
 
 

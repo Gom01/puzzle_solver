@@ -1,19 +1,22 @@
-from Processing_puzzle import puzzle_parsing as p
 import Puzzle as puzzle
-from Processing_puzzle import corner_finder as cf
-from Processing_puzzle import color_analysis as ca
-from Processing_puzzle import sides_finder as sf
 import cv2
+
+from Processing_puzzle.matching.color_analysis import find_color
+from Processing_puzzle.parsing.corners import find_corners
+from Processing_puzzle.parsing.parse import parse_image
+from Processing_puzzle.parsing.sides_finder import find_sides
+
 image_path = '../images/p1_b/Natel.Black.jpg'
 
 
 ##!! When taking the picture no piece should be sticked together (let some space) and use black tissue
 myPuzzle = puzzle.Puzzle()
 
-p.parse_image(image_path, myPuzzle)
-cf.find_corners(myPuzzle)
-#ca.find_color(myPuzzle)
-#sf.find_sides(myPuzzle)
+
+parse_image(image_path, myPuzzle)
+find_corners(myPuzzle)
+find_color(myPuzzle)
+find_sides(myPuzzle)
 
 pieces = myPuzzle.get_pieces()
 print()
@@ -22,12 +25,22 @@ for idx, piece in enumerate(pieces):
     img_black = piece.image_black_white
     contours = piece.contours
     i = piece.index
+    corners = piece.get_corners()
+    contours_col = piece.get_color_contour()
+    sides = piece.get_sides()
 
-    #print(f"Piece number {i}: {contours}")
-    #cv2.imshow('Corner detection', img_black)
-    #cv2.waitKey(0)
-    #cv2.imshow('Corner detection', img)
-    #cv2.waitKey(0)
+    for idx, side in enumerate(sides):
+        colors = [(0,255,0), (255,0,0), (0,0,255), (255,255,0)]
+        for pt in side:
+            cv2.circle(img, pt, 7, colors[idx], -1)
+
+    # #Show colors
+    # for idx , pt in enumerate(contours):
+    #     b,g,r = contours_col[idx]
+    #     cv2.circle(img, pt, 7, (int(b), int(g), int(r)), -1)
+
+    cv2.imshow('Corner detection', img)
+    cv2.waitKey(0)
 
 
 
