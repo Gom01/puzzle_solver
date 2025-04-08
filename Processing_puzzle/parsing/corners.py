@@ -190,7 +190,11 @@ def find_corners(myPuzzle):
         # cv.imshow('Final', colored_img3)
         # cv.waitKey(0)
 
-        piece.corners = points
+        if (points[0] == points[1]) or (points[0] == points[2]) or (points[0] == points[3]) or (points[2] == points[3]):
+            print(f"Corners of piece number {piece.index} are incorrect")
+            piece.corners = [[-1,-1], [-1,-1], [-1,1], [1,-1]]
+        else :
+            piece.corners = points
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("Corners saved...")

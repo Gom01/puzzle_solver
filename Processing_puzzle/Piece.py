@@ -17,7 +17,9 @@ class Piece:
         self.colors_contour = []
         self.corners = None
 
+
         self.sides = []
+        self.sides_color = []
 
         self.moment = None
 
@@ -53,6 +55,10 @@ class Piece:
         self.sides = [side1,side2,side3,side4]
         return
 
+    def set_sides_color(self, side1, side2, side3, side4):
+        self.sides_color = [side1,side2,side3,side4]
+        return
+
     def get_sides(self):
         return self.sides
 
@@ -69,8 +75,6 @@ class Piece:
 
     def get_moment(self):
         return self.moment
-
-
 
 
 
