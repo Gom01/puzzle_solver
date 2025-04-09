@@ -4,7 +4,9 @@ import cv2
 from Processing_puzzle.parsing.color_analysis import find_color
 from Processing_puzzle.parsing.corners import find_corners
 from Processing_puzzle.parsing.parse import parse_image
+from Processing_puzzle.parsing.sides_analysis import sides_information
 from Processing_puzzle.parsing.sides_finder import find_sides
+
 
 image_path = '../images/p1_b/Natel.Black.jpg'
 
@@ -17,6 +19,7 @@ parse_image(image_path, myPuzzle)
 find_corners(myPuzzle)
 find_sides(myPuzzle)
 find_color(myPuzzle)
+sides_information(myPuzzle)
 
 pieces = myPuzzle.get_pieces()
 print()

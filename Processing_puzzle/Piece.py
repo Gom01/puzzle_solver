@@ -20,6 +20,7 @@ class Piece:
 
         self.sides = []
         self.sides_color = []
+        self.sides_info = []
 
         self.moment = None
 
@@ -58,6 +59,9 @@ class Piece:
     def set_sides_color(self, side1, side2, side3, side4):
         self.sides_color = [side1,side2,side3,side4]
         return
+
+    def set_sides_info(self, side1, side2, side3, side4):
+        self.sides_info = [side1,side2,side3,side4]
 
     def get_sides(self):
         return self.sides

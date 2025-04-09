@@ -12,7 +12,8 @@ def sides_information(myPuzzle):
 
     def type_of_sides(piece,windows=False):
         sides = piece.get_sides()  # Liste des côtés
-        img = piece.get_black_white_image()  # Image en noir et blanc
+        img = piece.get_color_image()  # Image en noir et blanc
+
 
         # Centre de masse du contour global de la pièce
         piece_contour = np.array(piece.get_contours()).reshape((-1, 1, 2))
@@ -30,7 +31,7 @@ def sides_information(myPuzzle):
 
         for i, side in enumerate(sides):
             # Transformer le côté en un contour OpenCV
-            side_array = np.array(side.get_side_points()).reshape((-1, 1, 2))
+            side_array = np.array(side).reshape((-1, 1, 2))
 
             # Enveloppe convexe du côté
             hull = cv.convexHull(side_array)
@@ -65,46 +66,44 @@ def sides_information(myPuzzle):
             pos_M = position_relative(x_M, y_M)
 
 
-            if windows:
-                print("Area :",cv2.contourArea(hull))
+            #if windows:
+             #   print("Area :",cv2.contourArea(hull))
 
             # Déterminer la nature du côté
             if cv.contourArea(hull) < 1000:
                 type_cote = "droit"
                 color = (255, 255, 0)  # Jaune
+                sides_info.append(0)
+
 
             elif np.sign(pos_M1) == np.sign(pos_M):
                 type_cote = "concave"
                 color = (255, 0, 0)  # Bleu
-
+                sides_info.append(-1)
             else:
                 type_cote = "convexe"
                 color = (0, 255, 0)  # Vert
+                sides_info.append(1)
 
-            side.set_side_info(type_cote)
-            sides_info.append(type_cote)
-
-
-            if windows:
-                print(f"Le côté {i} est {type_cote}.")
+            #if windows:
+                #print(f"Le côté {i} est {type_cote}.")
 
             # Dessiner les résultats
-            img_copy = img.copy()
-            cv.drawContours(img_copy, [hull], -1, (0, 255, 0), thickness=2)  # Hull en vert
-            cv.circle(img_copy, (x_M1, y_M1), 5, (255, 0, 0), -1)  # Centre de masse du puzzle (bleu)
-            cv.circle(img_copy, (x_M, y_M), 5, (0, 0, 255), -1)  # Centre de masse du hull (rouge)
-            cv.circle(img_copy, (x1, y1), 5, (255, 255, 255), -1)  # Points extrêmes en blanc
-            cv.circle(img_copy, (x2, y2), 5, (255, 255, 255), -1)
-            cv.line(img_copy, (x1, y1), (x2, y2), (255, 0, 255), 2)
+            cv.drawContours(img, [hull], -1, (0, 255, 0), thickness=2)  # Hull en vert
+            cv.circle(img, (x_M1, y_M1), 5, (255, 0, 0), -1)  # Centre de masse du puzzle (bleu)
+            cv.circle(img, (x_M, y_M), 5, (0, 0, 255), -1)  # Centre de masse du hull (rouge)
+            cv.circle(img, (x1, y1), 5, (255, 255, 255), -1)  # Points extrêmes en blanc
+            cv.circle(img, (x2, y2), 5, (255, 255, 255), -1)
+            cv.line(img, (x1, y1), (x2, y2), (255, 0, 255), 2)
 
-            if(windows):
+        if(windows):
 
-                # Afficher l'image
-                cv.imshow(f"Côté {i}", img_copy)
-                cv.waitKey(0)
-                cv.destroyAllWindows()
+            # Afficher l'image
+            cv.imshow(f"Côté {i}", img)
+            cv.waitKey(0)
+            cv.destroyAllWindows()
 
-                print(f"Le côté {i} a été traité.")
+            #print(f"Le côté {i} a été traité.")
 
 
 
@@ -115,8 +114,10 @@ def sides_information(myPuzzle):
 
     # Appliquer la fonction pour chaque pièce
     for piece in pieces:
-        sides_info = type_of_sides(piece,False)
-        print(sides_info)
+        if piece.sides != []:
+            sides_info = type_of_sides(piece,False)
+            x,y,z,w = sides_info
+            piece.set_sides_info(x,y,z,w)
 
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
