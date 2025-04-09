@@ -20,17 +20,19 @@ find_corners(myPuzzle)
 find_sides(myPuzzle)
 find_color(myPuzzle)
 sides_information(myPuzzle)
+##Ajouter une fonction qui remet les pièces droites
+myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
 
-pieces = myPuzzle.get_pieces()
-print()
-for idx, piece in enumerate(pieces):
-    img = piece.image_color
-    img_black = piece.image_black_white
-    contours = piece.contours
-    i = piece.index
-    corners = piece.get_corners()
-    contours_col = piece.get_color_contour()
-    sides = piece.get_sides()
+# pieces = myPuzzle.get_pieces()
+# print()
+# for idx, piece in enumerate(pieces):
+#     img = piece.image_color
+#     img_black = piece.image_black_white
+#     contours = piece.contours
+#     i = piece.index
+#     corners = piece.get_corners()
+#     contours_col = piece.get_color_contour()
+#     sides = piece.get_sides()
 
     # for idx, side in enumerate(sides):
     #     colors = [(0,255,0), (255,0,0), (0,0,255), (255,255,0)]

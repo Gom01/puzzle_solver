@@ -12,7 +12,7 @@ def sides_information(myPuzzle):
 
     def type_of_sides(piece,windows=False):
         sides = piece.get_sides()  # Liste des côtés
-        img = piece.get_color_image()  # Image en noir et blanc
+        img = piece.get_color_image().copy() # Image en noir et blanc
 
 
         # Centre de masse du contour global de la pièce
@@ -70,12 +70,10 @@ def sides_information(myPuzzle):
              #   print("Area :",cv2.contourArea(hull))
 
             # Déterminer la nature du côté
-            if cv.contourArea(hull) < 1000:
+            if cv.contourArea(hull) < 10000:
                 type_cote = "droit"
                 color = (255, 255, 0)  # Jaune
                 sides_info.append(0)
-
-
             elif np.sign(pos_M1) == np.sign(pos_M):
                 type_cote = "concave"
                 color = (255, 0, 0)  # Bleu
@@ -86,7 +84,7 @@ def sides_information(myPuzzle):
                 sides_info.append(1)
 
             #if windows:
-                #print(f"Le côté {i} est {type_cote}.")
+               # print(f"Le côté {i} est {type_cote}.")
 
             # Dessiner les résultats
             cv.drawContours(img, [hull], -1, (0, 255, 0), thickness=2)  # Hull en vert
@@ -97,7 +95,7 @@ def sides_information(myPuzzle):
             cv.line(img, (x1, y1), (x2, y2), (255, 0, 255), 2)
 
         if(windows):
-
+            print(sides_info)
             # Afficher l'image
             cv.imshow(f"Côté {i}", img)
             cv.waitKey(0)

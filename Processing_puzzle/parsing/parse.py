@@ -18,7 +18,7 @@ def parse_image(image_path, puzzle):
     #Basics tools and settings (size image and margin arround)
     tools = Tools()
     new_width = 500
-    margin_scale = 1.10
+    margin_scale = 1.8
     scale_factor = 5.0
 
     #Modifying the size of the image (so I can see it on my screen)

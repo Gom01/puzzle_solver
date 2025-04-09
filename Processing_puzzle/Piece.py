@@ -24,10 +24,7 @@ class Piece:
 
         self.moment = None
 
-
         self.name_piece = ""
-
-        self.can_be_process = True
 
 
     def get_black_white_image(self):
@@ -35,6 +32,16 @@ class Piece:
 
     def get_color_image(self):
         return self.image_color
+
+    def set_color_image(self, newImg):
+        self.image_color = newImg
+        return
+
+    def get_index(self):
+        return self.index
+
+    def index_to_piece(self, index):
+        return self
 
     def get_corners(self):
         return self.corners
@@ -63,13 +70,16 @@ class Piece:
     def set_sides_info(self, side1, side2, side3, side4):
         self.sides_info = [side1,side2,side3,side4]
 
+    def get_sides_info(self):
+        return self.sides_info
+
     def get_sides(self):
         return self.sides
-
 
     def set_name(self,name):
         self.name_piece = name
         return
+
     def get_name(self):
         return self.name_piece
 
@@ -80,10 +90,5 @@ class Piece:
     def get_moment(self):
         return self.moment
 
-
-
     def __str__(self):
-        return (f"Piece: {self.index}\n  Position: ({self.x},{self.y})\n  Contours: [{self.contours[0]},...]\n  "
-                f"Corners: [{self.corners[0]},...]\n  Side1:[{self.sides[0]}]\n  Colored Contours : [{self.colors_contour[0]},...]\n  ")
-
-
+        return f"P:{self.index}"

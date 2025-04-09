@@ -48,40 +48,25 @@ class Tools:
             cv.waitKey(time)
         return contours,_
 
-
-    def rotate_image(self, image, rotation_matrix, moment):
-        # Vérification de l'image d'entrée
+    def rotate_image(self, image, rotation_matrix):
         if image is None or image.size == 0:
             print("Erreur : L'image d'entrée est vide.")
             return None
 
-        # Obtenir les dimensions de l'image
         height, width = image.shape[:2]
 
-        # Calculer la boîte englobante après la rotation pour éviter la coupure
-        corners = np.array([[0, 0], [width, 0], [0, height], [width, height]])
-        new_corners = np.dot(corners, rotation_matrix.T)
+        # Get the center of the image
+        center = (width // 2, height // 2)
 
-        # Calculer les nouvelles dimensions de l'image après la rotation
-        min_x, min_y = np.min(new_corners, axis=0)
-        max_x, max_y = np.max(new_corners, axis=0)
+        # Ensure the rotation matrix is 2x3 and of type float32
+        rotation_matrix = cv.getRotationMatrix2D(center, 90, 1)  # 90 degrees as an example of rotation
 
-        # Calculer la translation nécessaire pour éviter la coupure
-        translation_x = -min_x
-        translation_y = -min_y
+        # Apply the rotation matrix around the center of the image
+        rotated_image = cv.warpAffine(image, rotation_matrix, (width, height), flags=cv.INTER_LINEAR)
 
-        # Créer une matrice affine pour appliquer à la rotation et à la translation
-        affine_matrix = np.hstack([rotation_matrix, np.array([[translation_x], [translation_y]])])
-
-        # Appliquer la rotation et la translation en utilisant warpAffine avec la nouvelle matrice affine
-        rotated_image = cv.warpAffine(image, affine_matrix, (int(max_x - min_x), int(max_y - min_y)))
-
-        # Vérification de l'image après rotation
         if rotated_image is None or rotated_image.size == 0:
             print("Erreur : L'image après la rotation est vide.")
             return None
 
-
         return rotated_image
-
 
