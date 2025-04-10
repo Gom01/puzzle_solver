@@ -1,6 +1,5 @@
 import cv2 as cv
-
-from Processing_puzzle.side import Side
+from Processing_puzzle.Sides import Side
 
 def find_sides(myPuzzle, window=False):
 
@@ -69,8 +68,7 @@ def find_sides(myPuzzle, window=False):
                 cv.waitKey(0)
                 cv.destroyAllWindows()
 
-
-            piece.set_sides(side1, side2, side3, side4)
+            piece.set_sides(Side(side1), Side(side2), Side(side3), Side(side4))
         else:
             print("No sides found for this piece ")
             continue

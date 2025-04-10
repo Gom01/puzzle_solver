@@ -26,8 +26,9 @@ def find_color(puzzle, factor=0):
 
         # For each side of the piece
         for side in sides:
+            contour_side = side.get_side_contour()
             side_colors = []
-            for point in side:
+            for point in contour_side:
                 x, y = point
 
                 # Offset the point slightly toward centroid
@@ -40,16 +41,12 @@ def find_color(puzzle, factor=0):
                 side_colors.append([int(b), int(g), int(r)])
                 cv2.circle(color_image, (new_x, new_y), 1, (int(b), int(g), int(r)), -1)
 
-            color_sides.append(side_colors)
+            side.set_side_color(side_colors)
 
         # cv2.imshow('img', color_image)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
         # Save the colors of the four sides
-        if len(color_sides) == 4:
-            piece.set_sides_color(*color_sides)
-        else:
-            print(f"Warning: piece {idx} has {len(color_sides)} sides instead of 4")
 
     puzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("Colored contour saved!")

@@ -1,6 +1,7 @@
 import Puzzle as puzzle
 import cv2
 
+from Processing_puzzle.parsing.straight_piece import straighten_piece
 from Processing_puzzle.parsing.color_analysis import find_color
 from Processing_puzzle.parsing.corners import find_corners
 from Processing_puzzle.parsing.parse import parse_image
@@ -14,20 +15,20 @@ image_path = '../images/p1_b/Natel.Black.jpg'
 ##!! When taking the picture no piece should be sticked together (let some space) and use black tissue
 myPuzzle = puzzle.Puzzle()
 
-
 parse_image(image_path, myPuzzle)
 find_corners(myPuzzle)
 find_sides(myPuzzle)
 find_color(myPuzzle)
 sides_information(myPuzzle)
-##Ajouter une fonction qui remet les pièces droites
 myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
 
 pieces = myPuzzle.get_pieces()
-# print()
-# for idx, piece in enumerate(pieces):
-#      img = piece.image_color
-#      print(piece.get_sides_color()[0])
+#print()
+#       img = piece.get_color_image()
+#       #straighten_piece(piece)
+#       cv2.imshow('rotated image', img)
+#       cv2.waitKey(0)
+
 #     img_black = piece.image_black_white
 #     contours = piece.contours
 #     i = piece.index

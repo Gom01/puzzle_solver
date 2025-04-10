@@ -20,13 +20,19 @@ class Piece:
 
 
         self.sides = []
-        self.sides_color = []
-        self.sides_info = []
 
         self.moment = None
 
         self.name_piece = ""
         self.number_rotation = 0
+
+
+    def set_sides(self, side1, side2, side3, side4):
+        self.sides = side1, side2, side3, side4
+        return
+
+    def get_sides(self):
+        return self.sides
 
     def get_number_rotation(self):
         return self.number_rotation
@@ -67,26 +73,6 @@ class Piece:
     def set_corners(self, corners):
         self.corners = corners
         return
-
-    def set_sides(self, side1, side2, side3, side4):
-        self.sides = [side1,side2,side3,side4]
-        return
-
-    def set_sides_color(self, side1, side2, side3, side4):
-        self.sides_color = [side1,side2,side3,side4]
-        return
-
-    def get_sides_color(self):
-        return self.sides_color
-
-    def set_sides_info(self, side1, side2, side3, side4):
-        self.sides_info = [side1,side2,side3,side4]
-
-    def get_sides_info(self):
-        return self.sides_info
-
-    def get_sides(self):
-        return self.sides
 
     def set_name(self,name):
         self.name_piece = name

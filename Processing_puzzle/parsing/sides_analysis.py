@@ -24,11 +24,12 @@ def sides_information(myPuzzle):
         else:
             x_M1, y_M1 = 0, 0  # Éviter division par zéro
 
-        sides_info = []
+
 
         for i, side in enumerate(sides):
+            contour = side.get_side_contour()
             # Transformer le côté en un contour OpenCV
-            side_array = np.array(side).reshape((-1, 1, 2))
+            side_array = np.array(contour).reshape((-1, 1, 2))
 
             # Enveloppe convexe du côté
             hull = cv.convexHull(side_array)
@@ -74,15 +75,15 @@ def sides_information(myPuzzle):
             if cv.contourArea(hull) < area_mini_rectangle*5:
                 type_cote = "droit"
                 color = (255, 255, 0)  # Jaune
-                sides_info.append(0)
+                side.set_side_info(0)
             elif np.sign(pos_M1) == np.sign(pos_M):
                 type_cote = "concave"
                 color = (255, 0, 0)  # Bleu
-                sides_info.append(-1)
+                side.set_side_info(-1)
             else:
                 type_cote = "convexe"
                 color = (0, 255, 0)  # Vert
-                sides_info.append(1)
+                side.set_side_info(1)
 
             #if windows:
                # print(f"Le côté {i} est {type_cote}.")
@@ -96,7 +97,6 @@ def sides_information(myPuzzle):
             cv.line(img, (x1, y1), (x2, y2), (255, 0, 255), 2)
 
         if(windows):
-            print(sides_info)
             # Afficher l'image
             cv.imshow(f"Côté {i}", img)
             cv.waitKey(0)
@@ -106,17 +106,15 @@ def sides_information(myPuzzle):
 
 
 
-        return sides_info
+        return
 
 
     pieces = myPuzzle.get_pieces()
 
     # Appliquer la fonction pour chaque pièce
     for piece in pieces:
-        if piece.sides != []:
-            sides_info = type_of_sides(piece,False)
-            x,y,z,w = sides_info
-            piece.set_sides_info(x,y,z,w)
+        if piece.sides:
+            type_of_sides(piece,False)
 
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
