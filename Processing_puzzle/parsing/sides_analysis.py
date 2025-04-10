@@ -65,12 +65,16 @@ def sides_information(myPuzzle):
             pos_M1 = position_relative(x_M1, y_M1)
             pos_M = position_relative(x_M, y_M)
 
+            longueur = ((x2 - x1)**2 + (y2 - y1)**2)*(1 / 2)
 
-            #if windows:
-             #   print("Area :",cv2.contourArea(hull))
+            area_mini_rectangle = longueur
+            print(f"L'aire du rectangle est : {area_mini_rectangle} pixels²")
+
+            if windows:
+                print("Area :", cv2.contourArea(hull))
 
             # Déterminer la nature du côté
-            if cv.contourArea(hull) < 10000:
+            if cv.contourArea(hull) < area_mini_rectangle*5:
                 type_cote = "droit"
                 color = (255, 255, 0)  # Jaune
                 sides_info.append(0)
