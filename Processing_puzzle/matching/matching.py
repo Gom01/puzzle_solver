@@ -63,6 +63,7 @@ def sides_fit(side1,color1, side2,color2):
 
 def rotate_piece(piece, angle=90):  # Default angle is 90 degrees
     s1, s2, s3, s4 = piece.get_sides_info()
+    piece.increment_number_rotation()
     c1,c2,c3,c4 = piece.get_sides_color()
     piece.set_sides_info(s4, s1, s2, s3)
     piece.set_sides_color(c4, c1, c2, c3)
@@ -103,9 +104,11 @@ def is_corner_position(row, col):
 
 
 def is_border_position(row, col):
-    if is_corner_position(row, col):
-        return False
-    return row in [0, 3] or col in [0, 5]
+    if row in [0, 3] and 1 <= col <= 4:
+        return True
+    if col in [0, 5] and 1 <= row <= 2:
+        return True
+    return False
 
 
 def is_inside_position(row, col):
@@ -123,6 +126,7 @@ def can_place(piece, grid, row, col, corners, borders, insides):
 
     s1, s2, s3, s4 = piece.get_sides_info()  # [left, top, right, down]
 
+    #Check if borders
     c1, c2, c3, c4 = piece.get_sides_color() # [left, top, right, down]
 
     # Check edge constraints
@@ -137,19 +141,29 @@ def can_place(piece, grid, row, col, corners, borders, insides):
 
     # Check top neighbor
     if row > 0 and grid[row - 1][col] is not None:
-        if not sides_fit(s2,c2, grid[row - 1][col].get_sides_info()[3],grid[row - 1][col].get_sides_color()[3]):
+        if not sides_fit(s2,c2, grid[row - 1][col].get_sides_info()[3],grid[row - 1][col].get_sides_color()[3]):  # match with neighbor's bottom
+            return False
+
+    # Check bottom neighbor
+    if row < len(grid) - 1 and grid[row + 1][col] is not None:
+        if not sides_fit(s4, c4, grid[row + 1][col].get_sides_info()[1],grid[row + 1][col].get_sides_color()[1]):  # match with neighbor's top
             return False
 
     # Check left neighbor
     if col > 0 and grid[row][col - 1] is not None:
-        if not sides_fit(s1,c1, grid[row][col - 1].get_sides_info()[2],grid[row][col - 1].get_sides_color()[2]):
+        if not sides_fit(s1, c1, grid[row][col - 1].get_sides_info()[2], grid[row][col - 1].get_sides_color()[2]):  # match with neighbor's right
+            return False
+
+    # Check right neighbor
+    if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
+        if not sides_fit(s3, c3,  grid[row][col + 1].get_sides_info()[0], grid[row][col + 1].get_sides_color()[0]):  # match with neighbor's left
             return False
 
     return True
 
 
 def solve(grid, pieces, corners, borders, insides, row=0, col=0):
-    #print_grid(grid)
+    print_grid(grid)
     if len(pieces) == 0:
         return True
     if col == 6:
@@ -177,6 +191,7 @@ def build_image(solution_indices, pieces, scale_factor=0.2):
     max_width, max_height = 0, 0
     for row in solution_indices:
         for piece in row:
+            piece.rotate()
             img = piece.get_color_image()  # Get the image for the current piece
             img = np.array(img)  # Convert PIL image to OpenCV format (numpy array)
             img = cv2.resize(img, (0, 0), fx=scale_factor, fy=scale_factor)  # Resize piece

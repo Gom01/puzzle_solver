@@ -1,3 +1,4 @@
+import cv2
 class Piece:
     def __init__(self, image_black_white,image_color, contours, index):
         """
@@ -25,7 +26,15 @@ class Piece:
         self.moment = None
 
         self.name_piece = ""
+        self.number_rotation = 0
 
+    def get_number_rotation(self):
+        return self.number_rotation
+
+
+    def increment_number_rotation(self):
+        self.number_rotation = self.number_rotation + 1
+        return
 
     def get_black_white_image(self):
         return self.image_black_white
@@ -67,6 +76,9 @@ class Piece:
         self.sides_color = [side1,side2,side3,side4]
         return
 
+    def get_sides_color(self):
+        return self.sides_color
+
     def set_sides_info(self, side1, side2, side3, side4):
         self.sides_info = [side1,side2,side3,side4]
 
@@ -92,3 +104,21 @@ class Piece:
 
     def __str__(self):
         return f"P:{self.index}"
+
+    def rotate(self):
+        img = self.image_color
+        number_rotation = self.number_rotation
+
+        # Normalize the rotation count to 0–3
+        k = int(number_rotation) % 4
+
+        if k == 1:
+            img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+        elif k == 2:
+            img = cv2.rotate(img, cv2.ROTATE_180)
+        elif k == 3:
+            img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        # If k == 0, no rotation needed
+        self.image_color = img
+        self.number_rotation = 0
+

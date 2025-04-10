@@ -9,6 +9,7 @@ class Side:
         self.side_match = None
         self.piece_match = None
         self.rotation = None
+        self.number_of_rotation = 0
 
 
 

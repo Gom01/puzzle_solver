@@ -47,26 +47,3 @@ class Tools:
             cv.imshow('Contours', cv.resize(image_c, window_size))
             cv.waitKey(time)
         return contours,_
-
-    def rotate_image(self, image, rotation_matrix):
-        if image is None or image.size == 0:
-            print("Erreur : L'image d'entrée est vide.")
-            return None
-
-        height, width = image.shape[:2]
-
-        # Get the center of the image
-        center = (width // 2, height // 2)
-
-        # Ensure the rotation matrix is 2x3 and of type float32
-        rotation_matrix = cv.getRotationMatrix2D(center, 90, 1)  # 90 degrees as an example of rotation
-
-        # Apply the rotation matrix around the center of the image
-        rotated_image = cv.warpAffine(image, rotation_matrix, (width, height), flags=cv.INTER_LINEAR)
-
-        if rotated_image is None or rotated_image.size == 0:
-            print("Erreur : L'image après la rotation est vide.")
-            return None
-
-        return rotated_image
-

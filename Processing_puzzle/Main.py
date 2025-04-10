@@ -23,10 +23,11 @@ sides_information(myPuzzle)
 ##Ajouter une fonction qui remet les pièces droites
 myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
 
-# pieces = myPuzzle.get_pieces()
+pieces = myPuzzle.get_pieces()
 # print()
 # for idx, piece in enumerate(pieces):
-#     img = piece.image_color
+#      img = piece.image_color
+#      print(piece.get_sides_color()[0])
 #     img_black = piece.image_black_white
 #     contours = piece.contours
 #     i = piece.index

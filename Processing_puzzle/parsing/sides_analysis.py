@@ -65,10 +65,10 @@ def sides_information(myPuzzle):
             pos_M1 = position_relative(x_M1, y_M1)
             pos_M = position_relative(x_M, y_M)
 
-            longueur = ((x2 - x1)**2 + (y2 - y1)**2)*(1 / 2)
+            longueur = ((x2 - x1)**2 + (y2 - y1)**2)**(1 / 2)
 
             area_mini_rectangle = longueur
-            print(f"L'aire du rectangle est : {area_mini_rectangle} pixels²")
+            #print(f"L'aire du rectangle est : {area_mini_rectangle} pixels²")
 
             if windows:
                 print("Area :", cv2.contourArea(hull))
