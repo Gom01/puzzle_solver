@@ -9,64 +9,66 @@ from Processing_puzzle import Tools as t
 
 
 def sides_fit(side1,color1, side2,color2):
-    # Convertir en arrays
-    color1 = np.array(color1)
-    color2 = np.array(color2)
+    if color1 != 2 and color2 != 2:
+        # Convertir en arrays
+        color1 = np.array(color1)
+        color2 = np.array(color2)
 
-    # Calcul de la taille cible
-    l1, l2 = len(color1), len(color2)
-    l = min(l1, l2)
+        # Calcul de la taille cible
+        l1, l2 = len(color1), len(color2)
+        l = min(l1, l2)
 
-    # Redimensionner les deux listes à la même taille par interpolation
-    def resize_colors(color_array, new_length):
-        x_old = np.linspace(0, 1, len(color_array))
-        x_new = np.linspace(0, 1, new_length)
-        resized = np.zeros((new_length, 3))
+        # Redimensionner les deux listes à la même taille par interpolation
+        def resize_colors(color_array, new_length):
+            x_old = np.linspace(0, 1, len(color_array))
+            x_new = np.linspace(0, 1, new_length)
+            resized = np.zeros((new_length, 3))
+            for i in range(3):  # R, G, B
+                f = interp1d(x_old, color_array[:, i], kind='linear')
+                resized[:, i] = f(x_new)
+            return resized
+
+        color1_resized = resize_colors(color1, l)
+        color2_resized = resize_colors(color2, l)
+
+        # --- 1. MSE + score de similarité ---
+        mse = np.mean((color1_resized - color2_resized) ** 2)
+        note_mse = 1 / (1 + mse)
+
+        # --- 2. Corrélation RGB moyenne ---
+        corrs = []
         for i in range(3):  # R, G, B
-            f = interp1d(x_old, color_array[:, i], kind='linear')
-            resized[:, i] = f(x_new)
-        return resized
+            corr, _ = pearsonr(color1_resized[:, i], color2_resized[:, i])
+            corrs.append(corr)
+        note_corr = np.mean(corrs)
 
-    color1_resized = resize_colors(color1, l)
-    color2_resized = resize_colors(color2, l)
+        # --- 3. Distance perceptuelle (LAB ΔE) ---
+        # Normaliser entre 0-1 si besoin
+        if np.max(color1_resized) > 1.0:
+            color1_resized /= 255
+            color2_resized /= 255
 
-    # --- 1. MSE + score de similarité ---
-    mse = np.mean((color1_resized - color2_resized) ** 2)
-    note_mse = 1 / (1 + mse)
+        lab1 = rgb2lab(color1_resized.reshape(1, -1, 3))[0]
+        lab2 = rgb2lab(color2_resized.reshape(1, -1, 3))[0]
 
-    # --- 2. Corrélation RGB moyenne ---
-    corrs = []
-    for i in range(3):  # R, G, B
-        corr, _ = pearsonr(color1_resized[:, i], color2_resized[:, i])
-        corrs.append(corr)
-    note_corr = np.mean(corrs)
+        deltaE = np.linalg.norm(lab1 - lab2, axis=1)
+        mean_deltaE = np.mean(deltaE)
+        note_perceptuelle = 1 / (1 + mean_deltaE)
 
-    # --- 3. Distance perceptuelle (LAB ΔE) ---
-    # Normaliser entre 0-1 si besoin
-    if np.max(color1_resized) > 1.0:
-        color1_resized /= 255
-        color2_resized /= 255
-
-    lab1 = rgb2lab(color1_resized.reshape(1, -1, 3))[0]
-    lab2 = rgb2lab(color2_resized.reshape(1, -1, 3))[0]
-
-    deltaE = np.linalg.norm(lab1 - lab2, axis=1)
-    mean_deltaE = np.mean(deltaE)
-    note_perceptuelle = 1 / (1 + mean_deltaE)
-
-    print(f"note_mse : {note_mse:.4f}")
-    print(f"note_correlation_rgb : {note_corr:.4f}")
-    print(f"note_perceptuelle_lab : {note_perceptuelle:.4f}")
+        print(f"note_mse : {note_mse:.4f}")
+        print(f"note_correlation_rgb : {note_corr:.4f}")
+        print(f"note_perceptuelle_lab : {note_perceptuelle:.4f}")
 
     return (side1 == 1 and side2 == -1) or (side1 == -1 and side2 == 1) or (side1 == 2 or side2 == 2)
 
 
 def rotate_piece(piece, angle=90):  # Default angle is 90 degrees
-    s1, s2, s3, s4 = piece.get_sides_info()
-    piece.increment_number_rotation()
-    c1,c2,c3,c4 = piece.get_sides_color()
-    piece.set_sides_info(s4, s1, s2, s3)
-    piece.set_sides_color(c4, c1, c2, c3)
+    if piece.get_sides_info()[0] != 2:
+        s1, s2, s3, s4 = piece.get_sides_info()
+        piece.increment_number_rotation()
+        c1,c2,c3,c4 = piece.get_sides_color()
+        piece.set_sides_info(s4, s1, s2, s3)
+        piece.set_sides_color(c4, c1, c2, c3)
 
     # Get the image and rotate it
     #img = piece.get_color_image()  # Assuming this gives you a PIL Image
@@ -87,6 +89,7 @@ def classify_pieces(pieces):
         sides = piece.get_sides_info()
         if not sides:
             piece.set_sides_info(2, 2, 2, 2)
+            piece.set_sides_color(2,2,2,2)
             wrongs.append(piece)
             continue
         zeros = sides.count(0)
@@ -125,8 +128,6 @@ def can_place(piece, grid, row, col, corners, borders, insides):
         return False
 
     s1, s2, s3, s4 = piece.get_sides_info()  # [left, top, right, down]
-
-    #Check if borders
     c1, c2, c3, c4 = piece.get_sides_color() # [left, top, right, down]
 
     # Check edge constraints

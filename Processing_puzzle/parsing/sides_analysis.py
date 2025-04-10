@@ -3,9 +3,6 @@ import cv2 as cv
 import numpy as np
 from Processing_puzzle import Puzzle as p
 
-
-import cv2 as cv
-import numpy as np
 from Processing_puzzle import Puzzle as p
 
 def sides_information(myPuzzle):
