@@ -14,7 +14,6 @@ class Piece:
 
         self.x = None
         self.y = None
-        self.adjusted_contours = None
         self.colors_contour = []
         self.corners = None
 
@@ -25,6 +24,7 @@ class Piece:
 
         self.name_piece = ""
         self.number_rotation = 0
+        self.is_bad = False
 
 
     def set_sides(self, side1, side2, side3, side4):
@@ -34,12 +34,35 @@ class Piece:
     def get_sides(self):
         return self.sides
 
+    def get_sides_info(self):
+        sides = self.sides
+        return sides[0].get_side_info(), sides[1].get_side_info(), sides[2].get_side_info(), sides[3].get_side_info()
+
+
     def get_number_rotation(self):
         return self.number_rotation
 
+    def reset_piece(self, piece):
+        self.image_black_white = piece.get_black_white_image()
+        self.image_color = piece.get_color_image()
+        self.contours = piece.get_contours()
+        self.index = piece.get_index()
+        self.x = piece.get_position()[0]
+        self.y = piece.get_position()[1]
+        self.colors_contour = piece.get_color_contour()
+        self.corners = piece.get_corners()
+        self.sides = piece.get_sides()
+        self.moment = piece.get_moment()
+        self.name_piece = piece.get_name()
+        self.number_rotation = piece.get_number_rotation()
+        return
 
     def increment_number_rotation(self):
         self.number_rotation = self.number_rotation + 1
+        return
+
+    def set_number_rotation(self, i):
+        self.number_rotation = i
         return
 
     def get_black_white_image(self):
@@ -88,8 +111,11 @@ class Piece:
     def get_moment(self):
         return self.moment
 
+
     def __str__(self):
-        return f"P:{self.index}"
+        s1,s2,s3,s4 = self.get_sides_info() # [left, top, right, down]
+        return  f"(P:{self.index}: |{s1}|{s2}|{s3}|{s4}|)"
+
 
     def rotate(self):
         img = self.image_color

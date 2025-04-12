@@ -3,6 +3,7 @@ class Side:
         self.side_info = None #[-1,1,1,0]
         self.side_contour = side_contour #[...,...,...]
         self.side_color = None #[[...,..,...],[...,...,..],..]
+        self.side_size = None
 
     def set_side_info(self, side_info):
         self.side_info = side_info
@@ -26,6 +27,9 @@ class Side:
         return self.side_contour
 
 
+    def set_side_size(self, side_size):
+        self.side_size = side_size
+        return
 
-    def __str__(self):
-        return f"{self.side_info}"
+    def get_side_size(self):
+        return self.side_size

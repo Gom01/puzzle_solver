@@ -33,9 +33,11 @@ def find_corners(myPuzzle):
         approx = cv.approxPolyDP(contour_np, epsilon, True)
         hull = cv.convexHull(approx)
 
-        # #cv2.polylines(colored_img, [hull], isClosed=True, color=(0, 255, 0), thickness=2)
+
+        # #Goal always have 4 points
+        # cv.polylines(colored_img, [hull], isClosed=True, color=(0, 255, 0), thickness=2)
         # for pt in hull:
-        #     cv.circle(colored_img, tuple(pt[0]), 6, (0, 255, 0), -1)
+        #      cv.circle(colored_img, tuple(pt[0]), 6, (0, 255, 0), -1)
         # cv.imshow("Important points", colored_img)
         # cv.waitKey(0)
 
@@ -66,7 +68,7 @@ def find_corners(myPuzzle):
         important_points  = get_points_through_centroid(points, cx, cy, radius=40)
 
         # for point in important_points :
-        #     cv.circle(colored_img, point, 6, (0, 0, 255), -1)
+        #      cv.circle(colored_img, point, 6, (0, 0, 255), -1)
         # cv.imshow("Important points", colored_img)
         # cv.waitKey(0)
 
@@ -90,7 +92,7 @@ def find_corners(myPuzzle):
                                 points_middle.remove(B)
 
         # for point in points_middle :
-        #     cv.circle(colored_img, point, 7, (255, 0, 255), -1)
+        #      cv.circle(colored_img, point, 7, (255, 0, 255), -1)
         # cv.imshow("Important points", colored_img)
         # cv.waitKey(0)
 
@@ -186,15 +188,36 @@ def find_corners(myPuzzle):
 
 
         # for pt in points:
-        #     cv.circle(colored_img3, pt, 10, (255, 255, 0), -1)
+        #      cv.circle(colored_img3, pt, 10, (255, 255, 0), -1)
         # cv.imshow('Final', colored_img3)
         # cv.waitKey(0)
+
+        def order_corners(corners, cx, cy):
+            # Calculate the angle of each corner relative to the centroid
+            def calculate_angle(pt):
+                dx, dy = pt[0] - cx, pt[1] - cy
+                return np.arctan2(dy, dx)
+
+            # Sort corners based on angle
+            sorted_corners = sorted(corners, key=calculate_angle)
+
+            # Now, reorder them to ensure top-left, top-right, bottom-right, bottom-left
+            top_left = sorted_corners[0]
+            bottom_left = sorted_corners[1]
+            bottom_right = sorted_corners[2]
+            top_right = sorted_corners[3]
+
+            # Now that the points are sorted by angle, we can reorder them to match the required order
+            ordered_corners = [top_left, top_right, bottom_right, bottom_left]
+
+            return ordered_corners
 
         if (points[0] == points[1]) or (points[0] == points[2]) or (points[0] == points[3]) or (points[2] == points[3]):
             print(f"Corners of piece number {piece.index} are incorrect")
             piece.corners = [[-1,-1], [-1,-1], [-1,1], [1,-1]]
         else :
-            piece.corners = points
+            ordered_points = order_corners(points, cx, cy)
+            piece.corners = ordered_points
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("Corners saved...")

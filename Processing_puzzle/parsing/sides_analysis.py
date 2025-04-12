@@ -11,6 +11,7 @@ def sides_information(myPuzzle):
         sides = piece.get_sides()  # Liste des côtés
         img = piece.get_color_image().copy() # Image en noir et blanc
 
+        prints = []
 
         # Centre de masse du contour global de la pièce
         piece_contour = np.array(piece.get_contours()).reshape((-1, 1, 2))
@@ -68,25 +69,27 @@ def sides_information(myPuzzle):
             area_mini_rectangle = longueur
             #print(f"L'aire du rectangle est : {area_mini_rectangle} pixels²")
 
-            if windows:
-                print("Area :", cv2.contourArea(hull))
 
-            # Déterminer la nature du côté
-            if cv.contourArea(hull) < area_mini_rectangle*5:
+            #print(cv.contourArea(hull))
+
+            if cv.contourArea(hull) < 10000:
                 type_cote = "droit"
                 color = (255, 255, 0)  # Jaune
                 side.set_side_info(0)
+                prints.append(0)
             elif np.sign(pos_M1) == np.sign(pos_M):
                 type_cote = "concave"
                 color = (255, 0, 0)  # Bleu
                 side.set_side_info(-1)
+                prints.append(-1)
             else:
                 type_cote = "convexe"
                 color = (0, 255, 0)  # Vert
                 side.set_side_info(1)
+                prints.append(1)
 
-            #if windows:
-               # print(f"Le côté {i} est {type_cote}.")
+            if windows:
+               print(f"Le côté {i} est {type_cote}.")
 
             # Dessiner les résultats
             cv.drawContours(img, [hull], -1, (0, 255, 0), thickness=2)  # Hull en vert
@@ -96,13 +99,21 @@ def sides_information(myPuzzle):
             cv.circle(img, (x2, y2), 5, (255, 255, 255), -1)
             cv.line(img, (x1, y1), (x2, y2), (255, 0, 255), 2)
 
+        #print(prints)
+
         if(windows):
-            # Afficher l'image
-            cv.imshow(f"Côté {i}", img)
-            cv.waitKey(0)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            sides = piece.get_sides()
+            corners = piece.get_corners()
+            for i, side in enumerate(sides):
+                x,y = side.get_side_contour()[int(len(side.get_side_contour())/2)]
+                info = side.get_side_info()
+                cv2.putText(img, str(info), (x,y), font, 1, (255, 0, 255), 4, cv2.LINE_AA)
+
+            cv2.imshow(f'Piece {i + 1}', img)
+            cv2.waitKey(0)
             cv.destroyAllWindows()
 
-            #print(f"Le côté {i} a été traité.")
 
 
 
