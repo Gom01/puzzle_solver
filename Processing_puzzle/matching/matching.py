@@ -64,49 +64,49 @@ def is_inside_position(row, col):
 
 def can_place(piece, grid, row, col, corners, borders, insides):
     if piece in corners and not is_corner_position(row, col):
-        print("Not corner")
+        #print("Not corner")
         return False
     elif piece in borders and not is_border_position(row, col):
-        print("Not border")
+        #print("Not border")
         return False
     elif piece in insides and not is_inside_position(row, col):
-        print("Not inside")
+        #print("Not inside")
         return False
 
     s1, s2, s3, s4 = piece.get_sides_info()  # [left, bottom, right, top]
 
     if row == 0 and s4 != 0:  # top
-        print("Zero not correct top")
+        #print("Zero not correct top")
         return False
     if col == 0 and s1 != 0:  # left
-        print("Zero not correct left")
+        #print("Zero not correct left")
         return False
     if row == 3 and s2 != 0:  # bottom
-        print("Zero not correct bottom")
+        #print("Zero not correct bottom")
         return False
     if col == 5 and s3 != 0:  # right
-        print("Zero not correct right")
+        #print("Zero not correct right")
         return False
 
     sides = piece.get_sides()
 
     if row > 0 and grid[row - 1][col] is not None:
-        print("Check top neighbor")
+        #print("Check top neighbor")
         if not sides_fit(sides[3], grid[row - 1][col].get_sides()[1]):
             return False
 
     if row < len(grid) - 1 and grid[row + 1][col] is not None:
-        print("Check bottom neighbor")
+        #print("Check bottom neighbor")
         if not sides_fit(sides[1], grid[row + 1][col].get_sides()[3]):
             return False
 
     if col > 0 and grid[row][col - 1] is not None:
-        print("Check left neighbor")
+        #print("Check left neighbor")
         if not sides_fit(sides[0], grid[row][col - 1].get_sides()[2]):
             return False
 
     if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
-        print("Check right neighbor")
+        #print("Check right neighbor")
         if not sides_fit(sides[2], grid[row][col + 1].get_sides()[0]):
             return False
 
@@ -129,9 +129,9 @@ def build_frame(grid, corners, borders):
             break
         rotate_piece(first_corner)
 
-    print("(0,0)")
-    print(first_corner.get_sides_info())
-    print()
+    # print("(0,0)")
+    # print(first_corner.get_sides_info())
+    # print()
 
     def backtrack(index, remaining_corners, remaining_borders):
         candidates = remaining_borders + remaining_corners
@@ -141,7 +141,7 @@ def build_frame(grid, corners, borders):
             return True
 
         row, col = frame_path[index]
-        print(f"\nTrying position: ({row}, {col})")
+        # print(f"\nTrying position: ({row}, {col})")
 
         for piece in candidates:
             original_piece = piece
@@ -171,26 +171,47 @@ def build_frame(grid, corners, borders):
     return success
 
 
-def solve(grid, pieces, corners, borders, insides, row=0, col=0):
-    print_grid(grid)
-    if len(pieces) == 0:
-        return True
-    if col == 6:
-        return solve(grid, pieces, corners, borders, insides, row + 1, 0)
-    if row == 4:
+def build_inside(grid, insides, wrongs):
+    # Define the positions for the inside pieces: rows 1 and 2, cols 1 to 4
+    frame_path = [(row, col) for row in range(1, 3) for col in range(1, 5)]
+
+    def backtrack(index, remaining_insides, remaining_wrongs):
+        candidates = remaining_insides + remaining_wrongs
+        if index >= len(frame_path):
+            return True
+        if len(candidates) == 0:
+            return False
+
+        row, col = frame_path[index]
+        # print(f"\n🔄 Trying position: ({row}, {col})")
+
+        for piece in candidates:
+            original_piece = piece
+            for _ in range(4):
+                if can_place(piece, grid, row, col, [], [], remaining_insides + remaining_wrongs):
+                    grid[row][col] = piece
+                    new_insides = remaining_insides.copy()
+                    new_wrongs = remaining_wrongs.copy()
+
+                    if piece in new_insides:
+                        new_insides.remove(piece)
+                    else:
+                        new_wrongs.remove(piece)
+
+                    if backtrack(index + 1, new_insides, new_wrongs):
+                        return True
+
+                    grid[row][col] = None
+                rotate_piece(piece)
+
+            piece.reset_piece(original_piece)  # Reset rotation and sides
         return False
 
-    for piece in pieces[:]:
-        for _ in range(4):
-            if can_place(piece, grid, row, col, corners, borders, insides):
-                grid[row][col] = piece
-                pieces.remove(piece)
-                if solve(grid, pieces, corners, borders, insides, row, col + 1):
-                    return True
-                grid[row][col] = None
-                pieces.append(piece)
-            rotate_piece(piece)
-    return False
+    success = backtrack(0, insides.copy(), wrongs.copy())
+    if not success:
+        print("❌ Could not place all inside pieces.")
+    return success
+
 
 
 def build_image(solution_indices, pieces, scale_factor=0.2):
@@ -233,10 +254,24 @@ def main():
 
     grid = [[None for _ in range(6)] for _ in range(4)]
 
-    build_frame(grid, corners, borders)
+
+    print("\n🎯 Starting to build frame...\n")
+    success = build_frame(grid, corners, borders)
+    if not success:
+        print("Failed to build frame.")
+        return
+    print("✅ Frame built.")
     print_grid(grid)
 
-    final_image = build_image(grid, corners + borders)
+
+    print("\n🎯 Starting to place inside pieces...\n")
+    if not build_inside(grid, insides, wrongs):
+        print("Failed ! ")
+    else:
+        print("✅ Filled missing pieces with wrong pieces.")
+
+    print_grid(grid)
+    final_image = build_image(grid, corners + borders + insides + wrongs)
     cv2.imshow("Solved Puzzle", final_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
