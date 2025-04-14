@@ -1,3 +1,4 @@
+import numpy as np
 class Side:
     def __init__(self, side_contour):
         self.side_info = None #[-1,1,1,0]
@@ -27,9 +28,14 @@ class Side:
         return self.side_contour
 
 
-    def set_side_size(self, side_size):
-        self.side_size = side_size
-        return
-
     def get_side_size(self):
+        if self.side_contour == 2:
+            return 2
+        if self.side_size is None :
+            contour = self.side_contour
+            start_point = np.array(contour[0])
+            end_point = np.array(contour[-1])
+            distance = np.linalg.norm(end_point - start_point)
+            self.side_size = distance
+
         return self.side_size

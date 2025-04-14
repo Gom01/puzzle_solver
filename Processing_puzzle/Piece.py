@@ -117,12 +117,9 @@ class Piece:
         return  f"(P:{self.index}: |{s1}|{s2}|{s3}|{s4}|)"
 
 
-    def rotate(self):
+    def rotate_image_by_rotation(self):
         img = self.image_color
-        number_rotation = self.number_rotation
-
-        # Normalize the rotation count to 0–3
-        k = int(number_rotation) % 4
+        k = int(self.number_rotation) % 4
 
         if k == 1:
             img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
@@ -131,6 +128,6 @@ class Piece:
         elif k == 3:
             img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
         # If k == 0, no rotation needed
-        self.image_color = img
-        self.number_rotation = 0
+
+        return img
 

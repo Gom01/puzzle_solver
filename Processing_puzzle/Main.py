@@ -27,11 +27,11 @@ for idx, piece in enumerate(pieces):
     infos = piece.get_sides_info()
     sides = piece.get_sides()
     img = piece.get_color_image().copy()
-
+    #Gacuhe, bottom, right up
     for i, side in enumerate(sides):
         contour = side.get_side_contour()
         midpoint = contour[len(contour) // 2]
-        cv2.putText(img, str(f"{infos[i]}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(img, str(f"{i}  : { infos[i]}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX,
                     0.8, (255, 0, 255), 3, cv2.LINE_AA)
 
     window_name = f'Piece {idx}'

@@ -1,8 +1,49 @@
 import numpy as np
 import cv2
+from tifffile import imshow
+
 from Processing_puzzle import Puzzle as p
 from Processing_puzzle import Tools as t
 from Processing_puzzle.Sides import Side
+
+
+def compute_fit_score(piece, grid, row, col):
+    score = 0
+    sides = piece.get_sides()
+
+    def calc_score(side1, side2):
+        if not sides_fit(side1, side2):
+            return -1
+        size1 = side1.get_side_size()
+        size2 = side2.get_side_size()
+
+        if size1 == 2 or size2 == 2:
+            return 2
+
+        diff = abs(size1 - size2)
+        max_size = max(size1, size2)
+
+        size_score = max(0, 1 - (diff / max_size))
+        return 2 + size_score
+
+    if row > 0 and grid[row - 1][col] is not None:
+        score += calc_score(sides[3], grid[row - 1][col].get_sides()[1])
+
+    # Bottom neighbor
+    if row < len(grid) - 1 and grid[row + 1][col] is not None:
+        score += calc_score(sides[1], grid[row + 1][col].get_sides()[3])
+
+    # Left neighbor
+    if col > 0 and grid[row][col - 1] is not None:
+        score += calc_score(sides[0], grid[row][col - 1].get_sides()[2])
+
+    # Right neighbor
+    if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
+        score += calc_score(sides[2], grid[row][col + 1].get_sides()[0])
+
+    return score
+
+
 
 
 def sides_fit(side1, side2):
@@ -17,12 +58,11 @@ def sides_fit(side1, side2):
     else:
         return False
 
-
+#gacuche , bottom right up
 def rotate_piece(piece):
     piece.increment_number_rotation()
-    sides = piece.get_sides()
-    # New order: [left, bottom, right, top]
-    piece.set_sides(sides[3], sides[0], sides[1], sides[2])  # Rotate 90° clockwise
+    s0,s1,s2,s3 = piece.get_sides()
+    piece.set_sides(s1, s2, s3, s0)  # Rotate 90° clockwise
 
 
 def print_grid(grid):
@@ -32,6 +72,7 @@ def print_grid(grid):
 
 def classify_pieces(pieces):
     corners, borders, insides, wrongs = [], [], [], []
+
     for piece in pieces:
         sides = piece.get_sides()
         if piece.is_bad:
@@ -122,6 +163,8 @@ def build_frame(grid, corners, borders):
     ]
 
     first_corner = corners.pop(0)
+
+
     for _ in range(4):
         sides = first_corner.get_sides()
         if sides[0].get_side_info() == 0 and sides[3].get_side_info() == 0:
@@ -134,14 +177,26 @@ def build_frame(grid, corners, borders):
     # print()
 
     def backtrack(index, remaining_corners, remaining_borders):
-        candidates = remaining_borders + remaining_corners
         if index >= len(frame_path):
             return True
-        if len(candidates) == 0:
-            return True
-
         row, col = frame_path[index]
         # print(f"\nTrying position: ({row}, {col})")
+        best_rotation = 0
+        all_candidates = remaining_borders + remaining_corners
+        scored_candidates = []
+        for piece in all_candidates:
+            original = piece
+            best_score = float('-inf')
+            for r in range(4):
+                score = compute_fit_score(piece, grid, row, col)
+                if can_place(piece, grid, row, col, remaining_corners, remaining_borders, []):
+                    best_score = max(best_score, score)
+                    best_rotation = r
+                rotate_piece(piece)
+            piece.reset_piece(original)
+            scored_candidates.append((piece, best_score))
+
+        candidates = [p for p, _ in sorted(scored_candidates, key=lambda x: x[1], reverse=True)]
 
         for piece in candidates:
             original_piece = piece
@@ -176,14 +231,28 @@ def build_inside(grid, insides, wrongs):
     frame_path = [(row, col) for row in range(1, 3) for col in range(1, 5)]
 
     def backtrack(index, remaining_insides, remaining_wrongs):
-        candidates = remaining_insides + remaining_wrongs
         if index >= len(frame_path):
             return True
-        if len(candidates) == 0:
-            return False
-
         row, col = frame_path[index]
         # print(f"\n🔄 Trying position: ({row}, {col})")
+
+        all_candidates = remaining_insides + remaining_wrongs
+        scored_candidates = []
+
+        for piece in all_candidates:
+            original = piece
+            best_score = float('-inf')
+            for _ in range(4):
+                score = compute_fit_score(piece, grid, row, col)
+                if can_place(piece, grid, row, col, [], [], all_candidates):
+                    best_score = max(best_score, score)
+                rotate_piece(piece)
+            piece.reset_piece(original)
+            scored_candidates.append((piece, best_score))
+
+
+        candidates = [p for p, _ in sorted(scored_candidates, key=lambda x: x[1], reverse=True)]
+
 
         for piece in candidates:
             original_piece = piece
@@ -216,27 +285,39 @@ def build_inside(grid, insides, wrongs):
 
 def build_image(solution_indices, pieces, scale_factor=0.2):
     max_width, max_height = 0, 0
+
+    # First pass: determine maximum width and height after rotation + resizing
     for row in solution_indices:
         for piece in row:
             if piece is not None:
-                piece.rotate()
-                img = piece.get_color_image()
-                img = cv2.resize(np.array(img), (0, 0), fx=scale_factor, fy=scale_factor)
+                rotated_img = piece.rotate_image_by_rotation()  # Make sure this returns the rotated image without resetting
+                img = cv2.resize(rotated_img, (0, 0), fx=scale_factor, fy=scale_factor)
                 max_width = max(max_width, img.shape[1])
                 max_height = max(max_height, img.shape[0])
 
+    # Create final canvas
     final_image = np.ones((max_height * len(solution_indices), max_width * len(solution_indices[0]), 3),
                           dtype=np.uint8) * 255
 
+    # Second pass: paste each image in its slot
     for row_idx, row in enumerate(solution_indices):
         for col_idx, piece in enumerate(row):
             if piece is not None:
-                img = cv2.resize(np.array(piece.get_color_image()), (0, 0), fx=scale_factor, fy=scale_factor)
+                # Get rotated image again
+                rotated_img = piece.rotate_image_by_rotation()
+                img = cv2.resize(rotated_img, (0, 0), fx=scale_factor, fy=scale_factor)
             else:
                 img = np.zeros((max_height, max_width, 3), dtype=np.uint8)
+
+            # Compute position with centering
             x_offset = col_idx * max_width + (max_width - img.shape[1]) // 2
             y_offset = row_idx * max_height + (max_height - img.shape[0]) // 2
-            final_image[y_offset:y_offset + img.shape[0], x_offset:x_offset + img.shape[1]] = img
+
+            # Safe bounds check
+            if (y_offset + img.shape[0] <= final_image.shape[0]) and (x_offset + img.shape[1] <= final_image.shape[1]):
+                final_image[y_offset:y_offset + img.shape[0], x_offset:x_offset + img.shape[1]] = img
+            else:
+                print(f"Skipping piece at ({row_idx}, {col_idx}) due to size mismatch.")
     return final_image
 
 
