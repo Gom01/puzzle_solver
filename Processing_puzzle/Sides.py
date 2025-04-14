@@ -14,7 +14,7 @@ class Side:
         return self.side_info
 
     def set_side_color(self, side_color):
-        self.side_color = side_color
+        self.side_color = side_color #[(...,...,...) ,...]
         return
 
     def get_side_color(self):

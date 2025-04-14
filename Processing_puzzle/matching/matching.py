@@ -5,7 +5,7 @@ from tifffile import imshow
 from Processing_puzzle import Puzzle as p
 from Processing_puzzle import Tools as t
 from Processing_puzzle.Sides import Side
-
+import numpy as np
 
 def compute_fit_score(piece, grid, row, col):
     score = 0
@@ -13,35 +13,59 @@ def compute_fit_score(piece, grid, row, col):
 
     def calc_score(side1, side2):
         if not sides_fit(side1, side2):
-            return -1
+            return -10
+
         size1 = side1.get_side_size()
         size2 = side2.get_side_size()
 
         if size1 == 2 or size2 == 2:
-            return 2
+            base_score = -5
+        else:
+            diff = abs(size1 - size2)
+            max_size = max(size1, size2)
+            size_score = max(0, 1 - (diff / max_size))
+            base_score = size_score*5
+        # Color matching
+        colors1 = np.array(side1.get_side_color())  # shape: (3, 3)
+        colors2 = np.array(side2.get_side_color())  # shape: (3, 3)
+        # Compare each color from one side to all on the other and take the best match
+        total_color_score = 0
+        for c1 in colors1:
+            dists = np.linalg.norm(colors2 - c1, axis=1)  # Euclidean distances
+            best_match_score = 1 - min(dists) / 255  # normalize, lower distance = better
+            total_color_score += best_match_score
 
-        diff = abs(size1 - size2)
-        max_size = max(size1, size2)
+        color_score = total_color_score / len(colors1)
+        color_bonus = color_score * 2  # weight of color in final score
 
-        size_score = max(0, 1 - (diff / max_size))
-        return 2 + size_score
+        return base_score + color_bonus
 
+    # Top neighbor
     if row > 0 and grid[row - 1][col] is not None:
         score += calc_score(sides[3], grid[row - 1][col].get_sides()[1])
+    else: score += 6
 
     # Bottom neighbor
     if row < len(grid) - 1 and grid[row + 1][col] is not None:
         score += calc_score(sides[1], grid[row + 1][col].get_sides()[3])
+    else:
+        score += 6
+
 
     # Left neighbor
     if col > 0 and grid[row][col - 1] is not None:
         score += calc_score(sides[0], grid[row][col - 1].get_sides()[2])
+    else:
+        score += 6
 
     # Right neighbor
     if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
         score += calc_score(sides[2], grid[row][col + 1].get_sides()[0])
+    else:
+        score += 6
 
     return score
+
 
 
 
@@ -76,7 +100,6 @@ def classify_pieces(pieces):
     for piece in pieces:
         sides = piece.get_sides()
         if piece.is_bad:
-            piece.set_sides(Side(2), Side(2), Side(2), Side(2))
             for s in piece.get_sides():
                 s.set_side_info(2)
             wrongs.append(piece)
@@ -116,16 +139,16 @@ def can_place(piece, grid, row, col, corners, borders, insides):
 
     s1, s2, s3, s4 = piece.get_sides_info()  # [left, bottom, right, top]
 
-    if row == 0 and s4 != 0:  # top
+    if row == 0 and (s4 == 1 or s4 == -1):  # top
         #print("Zero not correct top")
         return False
-    if col == 0 and s1 != 0:  # left
+    if col == 0 and (s1 == 1 or s1 == -1):  # left
         #print("Zero not correct left")
         return False
-    if row == 3 and s2 != 0:  # bottom
+    if row == 3 and (s2 == 1 or s2 == -1):  # bottom
         #print("Zero not correct bottom")
         return False
-    if col == 5 and s3 != 0:  # right
+    if col == 5 and (s3 == 1 or s3 == -1):  # right
         #print("Zero not correct right")
         return False
 
@@ -154,7 +177,7 @@ def can_place(piece, grid, row, col, corners, borders, insides):
     return True
 
 
-def build_frame(grid, corners, borders):
+def build_frame(grid, corners, borders, wrongs):
     frame_path = [
         *[(0, col) for col in range(1, 6)],
         *[(row, 5) for row in range(1, 4)],
@@ -176,20 +199,20 @@ def build_frame(grid, corners, borders):
     # print(first_corner.get_sides_info())
     # print()
 
-    def backtrack(index, remaining_corners, remaining_borders):
+    def backtrack(index, remaining_corners, remaining_borders, remaining_wrongs):
         if index >= len(frame_path):
             return True
         row, col = frame_path[index]
         # print(f"\nTrying position: ({row}, {col})")
         best_rotation = 0
-        all_candidates = remaining_borders + remaining_corners
+        all_candidates = remaining_borders + remaining_corners + remaining_wrongs
         scored_candidates = []
         for piece in all_candidates:
             original = piece
             best_score = float('-inf')
             for r in range(4):
                 score = compute_fit_score(piece, grid, row, col)
-                if can_place(piece, grid, row, col, remaining_corners, remaining_borders, []):
+                if can_place(piece, grid, row, col, remaining_corners, remaining_borders, remaining_wrongs):
                     best_score = max(best_score, score)
                     best_rotation = r
                 rotate_piece(piece)
@@ -205,13 +228,16 @@ def build_frame(grid, corners, borders):
                     grid[row][col] = piece
                     new_corners = remaining_corners.copy()
                     new_borders = remaining_borders.copy()
+                    new_wrongs = remaining_wrongs.copy()
 
                     if piece in remaining_corners:
                         new_corners.remove(piece)
-                    else:
+                    elif piece in remaining_borders:
                         new_borders.remove(piece)
+                    else:
+                        new_wrongs.remove(piece)
 
-                    if backtrack(index + 1, new_corners, new_borders):
+                    if backtrack(index + 1, new_corners, new_borders, new_wrongs):
                         return True
 
                     grid[row][col] = None
@@ -220,7 +246,7 @@ def build_frame(grid, corners, borders):
             piece.reset_piece(original_piece)
         return False
 
-    success = backtrack(0, corners.copy(), borders.copy())
+    success = backtrack(0, corners.copy(), borders.copy(), wrongs.copy())
     if not success:
         print("❌ Could not build the frame.")
     return success
@@ -337,12 +363,13 @@ def main():
 
 
     print("\n🎯 Starting to build frame...\n")
-    success = build_frame(grid, corners, borders)
+    success = build_frame(grid, corners, borders,wrongs)
     if not success:
         print("Failed to build frame.")
         return
     print("✅ Frame built.")
     print_grid(grid)
+
 
 
     print("\n🎯 Starting to place inside pieces...\n")

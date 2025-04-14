@@ -32,7 +32,7 @@ class Piece:
         return
 
     def get_sides(self):
-        return self.sides
+        return self.sides # [left, bottom, right, top]
 
     def get_sides_info(self):
         sides = self.sides
