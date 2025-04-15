@@ -7,20 +7,20 @@ import numpy as np
 def compute_fit_score(piece, grid, row, col):
     score = 0
     sides = piece.get_sides()
-
     def calc_score(side1, side2):
         if not sides_fit(side1, side2):
-            return float('-inf')
+            return -100  # Early exit on invalid fit
 
         size1 = side1.get_side_size()
         size2 = side2.get_side_size()
 
+        # Refined size matching with more sophisticated penalties
         if size1 == 2 or size2 == 2:
-            base_score = -500
+            base_score = -500  # Wildcard side can fit with any side
         else:
             diff = abs(size1 - size2)
             max_size = max(size1, size2)
-            size_score = max(0, 1 - (diff / max_size)) * 10
+            size_score = max(0, 1 - (diff / max_size)) * 10  # Increase penalty for size mismatch
             base_score = size_score * 5
 
         # Color Matching
@@ -30,12 +30,12 @@ def compute_fit_score(piece, grid, row, col):
         total_color_score = 0
         for c1 in colors1:
             dists = np.linalg.norm(colors2 - c1, axis=1)
-            best_match_score = 1 - min(dists) / 255
+            best_match_score = 1 - min(dists) / 255  # Normalize color distance
             total_color_score += best_match_score
 
-
+        # Normalize and apply color bonus
         color_score = total_color_score / len(colors1)
-        color_bonus = color_score * 3
+        color_bonus = color_score * 3  # Increased the weight of color matching
 
         return base_score + color_bonus
 

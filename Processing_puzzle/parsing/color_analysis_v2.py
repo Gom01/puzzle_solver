@@ -36,8 +36,8 @@ def find_color(puzzle, window=False):
 
         # Step 1: Detect intersection points on vertical/horizontal axis
         top = bottom = left = right = None
-        t = 3  # axis tolerance
-        circle_radius = 50  # radius for collecting pixels
+        t = 3 # axis tolerance
+        circle_radius = 100  # radius for collecting pixels
         for pt in contours:
             x, y = pt
             if cx - t <= x <= cx + t and y < cy:
