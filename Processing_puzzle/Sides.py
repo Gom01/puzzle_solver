@@ -4,7 +4,9 @@ class Side:
         self.side_info = None #[-1,1,1,0]
         self.side_contour = side_contour #[...,...,...]
         self.side_color = None #[[...,..,...],[...,...,..],..]
+        self.side_color_weight = None
         self.side_size = None
+        self.side_score = None
 
     def set_side_info(self, side_info):
         self.side_info = side_info
@@ -13,12 +15,13 @@ class Side:
     def get_side_info(self):
         return self.side_info
 
-    def set_side_color(self, side_color):
+    def set_side_color(self, side_color, weight_color):
         self.side_color = side_color #[(...,...,...) ,...]
+        self.side_color_weight = weight_color
         return
 
     def get_side_color(self):
-        return self.side_color
+        return self.side_color, self.side_color_weight
 
     def set_side_contour(self, side_contour):
         self.side_contour = side_contour
@@ -27,6 +30,12 @@ class Side:
     def get_side_contour(self):
         return self.side_contour
 
+    def set_side_score(self, side_score):
+        self.side_score = side_score
+        return
+
+    def get_side_score(self):
+        return self.side_score
 
     def get_side_size(self):
         if self.side_contour == 2:

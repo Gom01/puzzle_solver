@@ -2,66 +2,50 @@ from unittest.util import sorted_list_difference
 import numpy as np
 import cv2
 from Processing_puzzle import Puzzle as p
-import numpy as np
+from side_shape import side_similarities
+from side_shape import color_similarities
 
 def compute_fit_score(piece, grid, row, col):
     score = 0
     sides = piece.get_sides()
-    def calc_score(side1, side2):
-        if not sides_fit(side1, side2):
-            return -100  # Early exit on invalid fit
 
+    def calc_score(side1, side2):
+
+        s1, s2 = side1.get_side_info(), side2.get_side_info()
+
+        colors1, weight1 = side1.get_side_color()
+        colors2, weight2 = side2.get_side_color()
+        color_score = color_similarities(colors1, weight1, colors2, weight2)
+
+        if s1 == 2 or s2 == 2:
+            return color_score - 2
+
+        score_sides = side_similarities(side1, side2)
         size1 = side1.get_side_size()
         size2 = side2.get_side_size()
+        diff = abs(size1 - size2)
+        max_size = max(size1, size2)
+        size_score = max(0, 1 - (diff / max_size))
 
-        # Refined size matching with more sophisticated penalties
-        if size1 == 2 or size2 == 2:
-            base_score = -500  # Wildcard side can fit with any side
-        else:
-            diff = abs(size1 - size2)
-            max_size = max(size1, size2)
-            size_score = max(0, 1 - (diff / max_size)) * 10  # Increase penalty for size mismatch
-            base_score = size_score * 5
+        return color_score - score_sides + size_score
 
-        # Color Matching
-        colors1 = np.array(side1.get_side_color())
-        colors2 = np.array(side2.get_side_color())
-
-        total_color_score = 0
-        for c1 in colors1:
-            dists = np.linalg.norm(colors2 - c1, axis=1)
-            best_match_score = 1 - min(dists) / 255  # Normalize color distance
-            total_color_score += best_match_score
-
-        # Normalize and apply color bonus
-        color_score = total_color_score / len(colors1)
-        color_bonus = color_score * 3  # Increased the weight of color matching
-
-        return base_score + color_bonus
 
     # Check adjacent pieces and compute the score
     if row > 0 and grid[row - 1][col] is not None:
         score += calc_score(sides[3], grid[row - 1][col].get_sides()[1])
-    else:
-        score += 10  # Open connection adds to score (increased from 6 for more priority)
 
     if row < len(grid) - 1 and grid[row + 1][col] is not None:
         score += calc_score(sides[1], grid[row + 1][col].get_sides()[3])
-    else:
-        score += 10  # Open connection adds to score (increased from 6)
+
 
     if col > 0 and grid[row][col - 1] is not None:
         score += calc_score(sides[0], grid[row][col - 1].get_sides()[2])
-    else:
-        score += 10  # Open connection adds to score (increased from 6)
 
     if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
         score += calc_score(sides[2], grid[row][col + 1].get_sides()[0])
-    else:
-        score += 10  # Open connection adds to score (increased from 6)
+
 
     return score
-
 
 
 
@@ -70,17 +54,14 @@ def sides_fit(side1, side2):
     inf2 = side2.get_side_info()
     return (inf1 == 1 and inf2 == -1) or (inf1 == -1 and inf2 == 1) or inf1 == 2 or inf2 == 2
 
-
 def rotate_piece(piece):
     piece.increment_number_rotation()
     s0, s1, s2, s3 = piece.get_sides()
     piece.set_sides(s1, s2, s3, s0)
 
-
 def print_grid(grid):
     for row in grid:
         print([str(piece) if piece else "None" for piece in row])
-
 
 def classify_pieces(pieces):
     corners, borders, insides, wrongs = [], [], [], []
@@ -121,7 +102,6 @@ def can_place(piece, grid, row, col, corners, borders, insides, wrongs):
         if piece not in insides and piece not in wrongs:
             return False
 
-    # Check edges (matching outer edges)
     s1, s2, s3, s4 = piece.get_sides_info()  # [left, bottom, right, top]
     if row == 0 and s4 not in (0, 2): return False  # top edge
     if row == 3 and s2 not in (0, 2): return False  # bottom edge
@@ -178,7 +158,7 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
     new_corners.remove(first_piece)
 
     # Define the corner, border, and inside positions
-    corner_positions = {(0, 0), (0, 5), (3, 0), (3, 5)}
+    corner_positions = {(0,0),(0, 5), (3, 0), (3, 5)}
     border_positions = {
         *[(0, c) for c in range(1, 5)],
         *[(3, c) for c in range(1, 5)],
@@ -188,30 +168,31 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
     inside_positions = {(r, c) for r in range(1, 3) for c in range(1, 5)}
 
     def backtrack(index, corners_left, borders_left, insides_left, wrongs_left):
-        if index % 2 == 0:
-            print(f"\n🧩 Progress: {index}/{total_slots} | Corners: {len(corners_left)} | Borders: {len(borders_left)} | Insides: {len(insides_left)} | Wrongs: {len(wrongs_left)}")
-            print_grid(grid)
+
+
+        print(f"\n🧩 Progress: {index}/{total_slots} | Corners: {len(corners_left)} | Borders: {len(borders_left)} | Insides: {len(insides_left)} | Wrongs: {len(wrongs_left)}")
+        print_grid(grid)
 
         if index >= total_slots:
-            return True  # Puzzle is solved
+            return True
 
         row, col = full_path[index]
         is_frame = index < len(full_path) - 8  # 24 - 16 = 8 inside slots
 
         if is_frame:
-            # Determine candidates based on position type (corner, border, inside)
             if (row, col) in corner_positions:
-                candidates = corners_left if corners_left else wrongs_left
+                candidates = corners_left + wrongs_left
             elif (row, col) in border_positions:
-                candidates = borders_left if borders_left else wrongs_left
+                candidates = borders_left + wrongs_left
             else:
-                candidates = wrongs_left  # fallback if the position is neither corner nor border
+                candidates = wrongs_left
         else:
-            candidates = insides_left if insides_left else wrongs_left  # inside pieces
+            if len(corners_left) != 0 or len(borders_left) != 0:
+                return False
+            candidates = insides_left + wrongs_left
 
         scored_candidates = []
 
-        # Evaluate best fit for each candidate with 4 rotations
         for piece in candidates:
             original = piece.clone() if hasattr(piece, "clone") else piece
             best_score, best_rotation = float('-inf'), 0
@@ -228,9 +209,9 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
 
         # Sort pieces by fit score (higher is better)
         scored_candidates.sort(key=lambda x: x[1], reverse=True)
+        print(scored_candidates)
 
 
-        # Try placing the best-fit piece
         for piece, score, rotation in scored_candidates:
             original = piece.clone() if hasattr(piece, "clone") else piece
             for _ in range(rotation):
@@ -256,7 +237,6 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
 
         return False  # If no piece fits
 
-    # Start the backtracking process from index 1 (since 0 is already filled with the first piece)
     success = backtrack(1, new_corners, borders.copy(), insides.copy(), wrongs.copy())
     print("✅ Puzzle solved!" if success else "❌ No solution found.")
     return success
