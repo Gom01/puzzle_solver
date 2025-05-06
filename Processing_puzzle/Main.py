@@ -18,7 +18,7 @@ myPuzzle = puzzle.Puzzle()
 parse_image(image_path, myPuzzle)
 find_corners(myPuzzle)
 find_sides(myPuzzle)
-find_color(myPuzzle,True)
+find_color(myPuzzle,False)
 sides_information(myPuzzle)
 
 

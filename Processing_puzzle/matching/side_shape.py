@@ -5,65 +5,6 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.spatial import procrustes
 
-def side_similarities(side1, side2):
-
-    def normalize_curve(points):
-        points = np.array(points)
-        points -= np.mean(points, axis=0)
-        max_dist = np.max(np.linalg.norm(points, axis=1))
-        if max_dist != 0:
-            points /= max_dist
-        return points
-
-    def align_curves(curve1, curve2):
-        # Both should already be normalized and resampled
-        mtx1, mtx2, disparity = procrustes(curve1, curve2)
-        return mtx1, mtx2, disparity
-
-    def resample_curve(points, num_points=100):
-        points = np.array(points)
-        distances = np.sqrt(np.sum(np.diff(points, axis=0) ** 2, axis=1))
-        cumulative = np.insert(np.cumsum(distances), 0, 0)
-        total_length = cumulative[-1]
-        if total_length == 0:
-            return np.repeat(points[0:1], num_points, axis=0)
-        uniform_dist = np.linspace(0, total_length, num_points)
-        interp_x = interp1d(cumulative, points[:, 0], kind='linear')
-        interp_y = interp1d(cumulative, points[:, 1], kind='linear')
-        resampled = np.stack((interp_x(uniform_dist), interp_y(uniform_dist)), axis=-1)
-        return resampled
-
-    def compare_curves(curve1, curve2):
-        curve1 = normalize_curve(resample_curve(curve1))
-        curve2 = normalize_curve(resample_curve(curve2))
-        aligned1, aligned2, disparity = align_curves(curve1, curve2)
-        score = np.mean(np.linalg.norm(aligned1 - aligned2, axis=1))
-        return score, aligned1, aligned2
-
-
-
-    # Compare first side of both pieces
-    contours1 = side1.get_side_contour()
-    contours2 = side2.get_side_contour()
-
-    score, curve1, curve2 = compare_curves(contours1, contours2)
-    score = score*10
-    print(f"🔍 Side1 - Side2 | Similarity Score: {score:.4f}")
-
-    # # --- Plotting ---
-    # plt.figure(figsize=(6, 6))
-    # plt.plot(curve1[:, 0], curve1[:, 1], label='Side1', color='blue')
-    # plt.plot(curve2[:, 0], curve2[:, 1], label='Side2', color='red', linestyle='--')
-    # plt.title(f"Similarity Score: {score:.4f}")
-    # plt.legend()
-    # plt.axis('equal')
-    # plt.grid(True)
-    # plt.show()
-
-    return score
-
-
-
 
 
 import itertools

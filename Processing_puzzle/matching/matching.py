@@ -2,7 +2,7 @@ from unittest.util import sorted_list_difference
 import numpy as np
 import cv2
 from Processing_puzzle import Puzzle as p
-from side_shape import side_similarities
+from test_sides import side_similarities
 from side_shape import color_similarities
 
 def compute_fit_score(piece, grid, row, col):
@@ -13,21 +13,22 @@ def compute_fit_score(piece, grid, row, col):
 
         s1, s2 = side1.get_side_info(), side2.get_side_info()
 
-        colors1, weight1 = side1.get_side_color()
-        colors2, weight2 = side2.get_side_color()
-        color_score = color_similarities(colors1, weight1, colors2, weight2)
+        #colors1, weight1 = side1.get_side_color()
+        #colors2, weight2 = side2.get_side_color()
+        #color_score = color_similarities(colors1, weight1, colors2, weight2)
 
-        if s1 == 2 or s2 == 2:
-            return color_score - 2
+        #if s1 == 2 or s2 == 2:
+        #    return color_score - 2
 
-        score_sides = side_similarities(side1, side2)
-        size1 = side1.get_side_size()
-        size2 = side2.get_side_size()
-        diff = abs(size1 - size2)
-        max_size = max(size1, size2)
-        size_score = max(0, 1 - (diff / max_size))
+        confidence = side_similarities(side1, side2, True)
 
-        return color_score - score_sides + size_score
+        #size1 = side1.get_side_size()
+        #size2 = side2.get_side_size()
+        #diff = abs(size1 - size2)
+        #max_size = max(size1, size2)
+        #size_score = max(0, 1 - (diff / max_size))
+
+        return confidence
 
 
     # Check adjacent pieces and compute the score
@@ -44,6 +45,8 @@ def compute_fit_score(piece, grid, row, col):
     if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
         score += calc_score(sides[2], grid[row][col + 1].get_sides()[0])
 
+
+    print(f"{piece.index} : final score = {score}")
 
     return score
 
@@ -245,6 +248,7 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
 def build_image(solution_indices, pieces, scale_factor=0.2):
     max_width, max_height = 0, 0
 
+    # First pass: determine max width/height for grid layout
     for row in solution_indices:
         for piece in row:
             if piece is not None:
@@ -255,13 +259,16 @@ def build_image(solution_indices, pieces, scale_factor=0.2):
 
     final_image = np.ones((max_height * len(solution_indices), max_width * len(solution_indices[0]), 3), dtype=np.uint8) * 255
 
+    # Second pass: place each image and add text
     for row_idx, row in enumerate(solution_indices):
         for col_idx, piece in enumerate(row):
             if piece is not None:
                 rotated_img = piece.rotate_image_by_rotation()
                 img = cv2.resize(rotated_img, (0, 0), fx=scale_factor, fy=scale_factor)
+                index = piece.get_index()
             else:
                 img = np.zeros((max_height, max_width, 3), dtype=np.uint8)
+                index = None
                 print(f"Piece missing at ({row_idx}, {col_idx}) - No image to place.")
 
             x_offset = col_idx * max_width + (max_width - img.shape[1]) // 2
@@ -269,10 +276,22 @@ def build_image(solution_indices, pieces, scale_factor=0.2):
 
             if (y_offset + img.shape[0] <= final_image.shape[0]) and (x_offset + img.shape[1] <= final_image.shape[1]):
                 final_image[y_offset:y_offset + img.shape[0], x_offset:x_offset + img.shape[1]] = img
+
+                # Draw index if piece exists
+                if index is not None:
+                    text = f"{index}"
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    font_scale = 0.7
+                    thickness = 2
+                    text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+                    text_x = x_offset + (img.shape[1] - text_size[0]) // 2
+                    text_y = y_offset + text_size[1] + 10
+                    cv2.putText(final_image, text, (text_x, text_y), font, font_scale, (0, 0, 255), thickness, cv2.LINE_AA)
             else:
                 print(f"Skipping piece at ({row_idx}, {col_idx}) due to size mismatch.")
 
     return final_image
+
 
 
 def main():

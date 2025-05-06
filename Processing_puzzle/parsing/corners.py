@@ -28,106 +28,106 @@ import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 
 
-def afficher_contour_polaire(contour_np, percentile_seuil=80, distance_tolerance=0.5):
-    """
-    Affiche un contour en coordonnées cartésiennes et polaires, et filtre uniquement les extrêmes locaux pointus,
-    avec des critères de filtrage ajustés pour permettre un meilleur affichage.
-    """
-    if contour_np.ndim != 3 or contour_np.shape[1:] != (1, 2):
-        raise ValueError("Le contour doit avoir la forme (N, 1, 2)")
-
-    # Aplatir le contour (N, 2)
-    points = contour_np.reshape(-1, 2)
-
-    # Calcul du centroïde
-    cx, cy = points.mean(axis=0)
-
-    # Conversion en coordonnées polaires
-    dx = points[:, 0] - cx
-    dy = points[:, 1] - cy
-    rho = np.sqrt(dx ** 2 + dy ** 2)
-    theta = np.arctan2(dy, dx)
-
-    # --- Calcul de l'angle moyen entre les points voisins ---
-    angles = np.diff(theta)
-    angles = np.concatenate([angles, [angles[0]]])  # Retourner à l'angle initial (circularité)
-
-    # Calcul de l'angle moyen
-    mean_angle = np.mean(np.abs(angles))
-    print(f"Angle moyen : {mean_angle} radians")
-
-    # Plage dynamique d'angles
-    min_angle = 20  # Fixer un seuil minimum réaliste pour l'angle
-    max_angle = 90  # Fixer un seuil maximum réaliste pour l'angle
-    print(f"Plage d'angles dynamique : {min_angle}° à {max_angle}°")
-
-    # --- Filtrage des pics locaux ---
-    rho_derivative = np.diff(rho)
-    local_max_indices = np.where((rho_derivative[:-1] > 0) & (rho_derivative[1:] < 0))[0] + 1  # Indices des pics locaux
-
-    # Vérifier les pics locaux trouvés
-    print(f"Nombre de pics locaux trouvés avant le filtrage : {len(local_max_indices)}")
-
-    # --- Filtrage basé sur l'angle ---
-    valid_angles = (angles > np.radians(min_angle)) & (angles < np.radians(max_angle))
-    valid_local_max_indices = local_max_indices[valid_angles[local_max_indices]]
-    print(f"Nombre de pics locaux après filtrage des angles : {len(valid_local_max_indices)}")
-
-    # --- Calcul de la courbure ---
-    rho_second_derivative = np.diff(rho_derivative)
-    curvatures = np.abs(rho_second_derivative)
-
-    # Affichage de la distribution des courbures pour ajuster le percentile
-    plt.figure(figsize=(8, 4))
-    plt.hist(curvatures, bins=20, color='g', alpha=0.7)
-    plt.title('Distribution des courbures')
-    plt.xlabel('Courbure')
-    plt.ylabel('Fréquence')
-    plt.grid(True)
-    plt.show()
-
-    # Afficher les courbures et les indices pour chaque point
-    for i, curv in enumerate(curvatures):
-        print(f"Index {i}, Courbure : {curv}")
-
-    # Filtrer les indices avec une courbure élevée
-    threshold = np.percentile(curvatures, percentile_seuil)
-    sharp_max_indices = valid_local_max_indices[curvatures[valid_local_max_indices - 1] > threshold]
-    print(f"Nombre de pics locaux après filtrage de la courbure (seuil {percentile_seuil}%) : {len(sharp_max_indices)}")
-
-    # --- Filtrage basé sur la distance au centroïde ---
-    max_distance = np.max(rho)
-    distance_tolerance_indices = np.where(np.abs(rho - max_distance) / max_distance < distance_tolerance)[0]
-    final_indices = np.intersect1d(sharp_max_indices, distance_tolerance_indices)
-    print(f"Nombre de pics après filtrage basé sur la distance au centroïde : {len(final_indices)}")
-
-    # Points filtrés
-    filtered_points = points[final_indices]
-    filtered_rho = rho[final_indices]
-    filtered_theta = theta[final_indices]
-
-    # --- Affichage cartésien ---
-    plt.figure(figsize=(6, 6))
-    plt.plot(points[:, 0], points[:, 1], 'o-', label='Contour')
-    plt.plot(filtered_points[:, 0], filtered_points[:, 1], 'ro', label='Extrêmes locaux pointus')
-    plt.plot(cx, cy, 'rx', label='Centroïde')
-    plt.gca().invert_yaxis()
-    plt.axis('equal')
-    plt.title("Contour en coordonnées cartésiennes (Extrêmes locaux pointus)")
-    plt.legend()
-    plt.grid(True)
-
-    # --- Affichage polaire (θ, ρ) ---
-    plt.figure(figsize=(8, 5))
-    plt.scatter(theta, rho, s=5, color='blue', label='Contour')
-    plt.scatter(filtered_theta, filtered_rho, s=10, color='red', label='Extrêmes locaux pointus')
-    plt.title("Représentation polaire du contour (θ, ρ) - Extrêmes locaux pointus")
-    plt.xlabel("θ (radians)")
-    plt.ylabel("ρ (distance au centroïde)")
-    plt.grid(True)
-    plt.legend()
-
-    plt.show()
+# def afficher_contour_polaire(contour_np, percentile_seuil=80, distance_tolerance=0.5):
+#     """
+#     Affiche un contour en coordonnées cartésiennes et polaires, et filtre uniquement les extrêmes locaux pointus,
+#     avec des critères de filtrage ajustés pour permettre un meilleur affichage.
+#     """
+#     if contour_np.ndim != 3 or contour_np.shape[1:] != (1, 2):
+#         raise ValueError("Le contour doit avoir la forme (N, 1, 2)")
+#
+#     # Aplatir le contour (N, 2)
+#     points = contour_np.reshape(-1, 2)
+#
+#     # Calcul du centroïde
+#     cx, cy = points.mean(axis=0)
+#
+#     # Conversion en coordonnées polaires
+#     dx = points[:, 0] - cx
+#     dy = points[:, 1] - cy
+#     rho = np.sqrt(dx ** 2 + dy ** 2)
+#     theta = np.arctan2(dy, dx)
+#
+#     # --- Calcul de l'angle moyen entre les points voisins ---
+#     angles = np.diff(theta)
+#     angles = np.concatenate([angles, [angles[0]]])  # Retourner à l'angle initial (circularité)
+#
+#     # Calcul de l'angle moyen
+#     mean_angle = np.mean(np.abs(angles))
+#     print(f"Angle moyen : {mean_angle} radians")
+#
+#     # Plage dynamique d'angles
+#     min_angle = 20  # Fixer un seuil minimum réaliste pour l'angle
+#     max_angle = 90  # Fixer un seuil maximum réaliste pour l'angle
+#     print(f"Plage d'angles dynamique : {min_angle}° à {max_angle}°")
+#
+#     # --- Filtrage des pics locaux ---
+#     rho_derivative = np.diff(rho)
+#     local_max_indices = np.where((rho_derivative[:-1] > 0) & (rho_derivative[1:] < 0))[0] + 1  # Indices des pics locaux
+#
+#     # Vérifier les pics locaux trouvés
+#     print(f"Nombre de pics locaux trouvés avant le filtrage : {len(local_max_indices)}")
+#
+#     # --- Filtrage basé sur l'angle ---
+#     valid_angles = (angles > np.radians(min_angle)) & (angles < np.radians(max_angle))
+#     valid_local_max_indices = local_max_indices[valid_angles[local_max_indices]]
+#     print(f"Nombre de pics locaux après filtrage des angles : {len(valid_local_max_indices)}")
+#
+#     # --- Calcul de la courbure ---
+#     rho_second_derivative = np.diff(rho_derivative)
+#     curvatures = np.abs(rho_second_derivative)
+#
+#     # Affichage de la distribution des courbures pour ajuster le percentile
+#     plt.figure(figsize=(8, 4))
+#     plt.hist(curvatures, bins=20, color='g', alpha=0.7)
+#     plt.title('Distribution des courbures')
+#     plt.xlabel('Courbure')
+#     plt.ylabel('Fréquence')
+#     plt.grid(True)
+#     plt.show()
+#
+#     # Afficher les courbures et les indices pour chaque point
+#     for i, curv in enumerate(curvatures):
+#         print(f"Index {i}, Courbure : {curv}")
+#
+#     # Filtrer les indices avec une courbure élevée
+#     threshold = np.percentile(curvatures, percentile_seuil)
+#     sharp_max_indices = valid_local_max_indices[curvatures[valid_local_max_indices - 1] > threshold]
+#     print(f"Nombre de pics locaux après filtrage de la courbure (seuil {percentile_seuil}%) : {len(sharp_max_indices)}")
+#
+#     # --- Filtrage basé sur la distance au centroïde ---
+#     max_distance = np.max(rho)
+#     distance_tolerance_indices = np.where(np.abs(rho - max_distance) / max_distance < distance_tolerance)[0]
+#     final_indices = np.intersect1d(sharp_max_indices, distance_tolerance_indices)
+#     print(f"Nombre de pics après filtrage basé sur la distance au centroïde : {len(final_indices)}")
+#
+#     # Points filtrés
+#     filtered_points = points[final_indices]
+#     filtered_rho = rho[final_indices]
+#     filtered_theta = theta[final_indices]
+#
+#     # --- Affichage cartésien ---
+#     plt.figure(figsize=(6, 6))
+#     plt.plot(points[:, 0], points[:, 1], 'o-', label='Contour')
+#     plt.plot(filtered_points[:, 0], filtered_points[:, 1], 'ro', label='Extrêmes locaux pointus')
+#     plt.plot(cx, cy, 'rx', label='Centroïde')
+#     plt.gca().invert_yaxis()
+#     plt.axis('equal')
+#     plt.title("Contour en coordonnées cartésiennes (Extrêmes locaux pointus)")
+#     plt.legend()
+#     plt.grid(True)
+#
+#     # --- Affichage polaire (θ, ρ) ---
+#     plt.figure(figsize=(8, 5))
+#     plt.scatter(theta, rho, s=5, color='blue', label='Contour')
+#     plt.scatter(filtered_theta, filtered_rho, s=10, color='red', label='Extrêmes locaux pointus')
+#     plt.title("Représentation polaire du contour (θ, ρ) - Extrêmes locaux pointus")
+#     plt.xlabel("θ (radians)")
+#     plt.ylabel("ρ (distance au centroïde)")
+#     plt.grid(True)
+#     plt.legend()
+#
+#     plt.show()
 
 
 def find_corners(myPuzzle):
@@ -144,7 +144,6 @@ def find_corners(myPuzzle):
         contours = piece.get_contours()
         contour_np = np.array(contours, dtype=np.int32).reshape((-1, 1, 2))
         print("contour :",contour_np)
-        afficher_contour_polaire(contour_np)
 
         # Centroid of the piece
         moments = cv.moments(contour_np)
@@ -495,7 +494,7 @@ def find_corners(myPuzzle):
 
         # print(f"Corners of piece number {piece.index} are correct",piece.corners)
 
-        piece.set_picture_debug(colored_img)
+        #piece.set_picture_debug(colored_img)
 
         # print("--------------------------------------------------------------------------------------------------\n\n\n")
 
