@@ -37,19 +37,60 @@ def color_similarities(colors1, weights1, colors2, weights2):
     return score
 
 
-def color_similarities2(colors1, colors2, weight=1.0):
-    """
-    Compare deux listes de couleurs et retourne un score de similarité basé sur la distance euclidienne.
+from math import sqrt
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import linear_sum_assignment
 
-    Chaque couleur est un tableau NumPy [R, G, B].
-    """
-    score = 0
-    length = min(len(colors1), len(colors2))  # On s'assure de comparer jusqu'à la longueur minimale des deux listes
 
-    for c1, c2 in zip(colors1[:length], colors2[:length]):
-        # Distance euclidienne entre les deux couleurs (R, G, B)
-        dist = sqrt(np.sum((c1 - c2) ** 2))  # Racine carrée de la somme des carrés des différences
-        similarity = int(weight * (255 * sqrt(3)) / (dist + 1))  # On inverse la distance pour la similarité
-        score += similarity
+def color_similarities2(colors1, colors2, weight=1.0, window=False, match_threshold=0.9):
+    length = min(len(colors1), len(colors2))
+    if length == 0:
+        return 0.0
 
-    return score
+    max_dist = sqrt(3 * 255 ** 2)
+    colors1 = np.array(colors1)
+    colors2 = np.array(colors2)
+
+    # Build cost matrix of Euclidean distances
+    cost_matrix = np.zeros((length, length))
+    for i in range(length):
+        for j in range(length):
+            dist = np.linalg.norm(colors1[i] - colors2[j])
+            cost_matrix[i, j] = dist
+
+    # Solve the assignment problem (minimize total distance)
+    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+
+    match_count = 0
+    similarities = []
+    for i, j in zip(row_ind, col_ind):
+        dist = cost_matrix[i, j]
+        sim = 1 - (dist / max_dist)
+        similarities.append(sim)
+        if sim >= match_threshold:
+            match_count += 1
+
+    normalized_score = (match_count / length) * weight
+
+    if window:
+        fig, ax = plt.subplots(figsize=(6, length * 0.5))
+        for idx, (i, j) in enumerate(zip(row_ind, col_ind)):
+            c1 = colors1[i] / 255
+            c2 = colors2[j] / 255
+            ax.barh(idx, 1, color=c1, height=0.4, label="Color 1" if idx == 0 else "")
+            ax.barh(idx + 0.4, 1, color=c2, height=0.4, label="Color 2" if idx == 0 else "")
+        ax.set_xlim(0, 1)
+        ax.set_ylim(-0.5, length + 0.5)
+        ax.set_yticks([i + 0.2 for i in range(length)])
+        ax.set_yticklabels([f"Pair {i + 1}" for i in range(length)])
+        ax.set_xticks([])
+        ax.legend(loc="upper right")
+        ax.set_title(f"Perfect Match Score (Best Alignment): {normalized_score:.4f}")
+        plt.tight_layout()
+        plt.show()
+
+    return normalized_score
+
+
+

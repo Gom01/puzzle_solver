@@ -68,7 +68,7 @@ def find_sides(myPuzzle, window=False):
                 cv.waitKey(0)
                 cv.destroyAllWindows()
 
-            piece.set_sides(Side(side1), Side(side2), Side(side3), Side(side4))
+            piece.set_sides(Side(side1, piece.get_color_image()), Side(side2, piece.get_color_image()), Side(side3, piece.get_color_image()), Side(side4, piece.get_color_image()))
         else:
             print("No sides found for this piece ")
             continue

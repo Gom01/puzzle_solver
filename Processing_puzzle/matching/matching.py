@@ -10,25 +10,17 @@ def compute_fit_score(piece, grid, row, col):
     score = 0
     sides = piece.get_sides()
 
-    def calc_score(side1, side2):
+    def calc_score(side1, side2, window=False):
 
         s1, s2 = side1.get_side_info(), side2.get_side_info()
 
-        #colors1, weight1 = side1.get_side_color()
-        #colors2, weight2 = side2.get_side_color()
-        #color_score = color_similarities(colors1, weight1, colors2, weight2)
+        ##Florian's method
+        colors_array1 = side1.get_side_color2()
+        colors_array2 = side2.get_side_color2()
+        color_score = color_similarities2(colors_array1, colors_array2, window=False)
 
-
-        colors_1f = side1.get_side_color2()
-        colors_2f = side2.get_side_color2()
-        print("colors_1f :",colors_1f)
-        print("colors_2f :",colors_2f)
-        #confidence = side_similarities(side1, side2, True)
-        color_score = color_similarities2(colors_1f, colors_2f)
-        print("color_score  :", color_score)
-
-        if s1 == 2 or s2 == 2:
-            return color_score - 2
+        ##Flavien's method
+        confidence = side_similarities(side1, side2, False)
 
         #size1 = side1.get_side_size()
         #size2 = side2.get_side_size()
@@ -36,22 +28,47 @@ def compute_fit_score(piece, grid, row, col):
         #max_size = max(size1, size2)
         #size_score = max(0, 1 - (diff / max_size))
 
-        return color_score #confidence
+        if window:
+            im1 = side1.get_piece_image().copy()
+            im2 = side2.get_piece_image().copy()
+            s1_c, s2_c = np.array(side1.get_side_contour()), np.array(side2.get_side_contour())
 
+            # Compute contour centroids
+            center1 = tuple(np.mean(s1_c, axis=0).astype(int))
+            center2 = tuple(np.mean(s2_c, axis=0).astype(int))
 
+            # Draw circles at the center of each contour
+            cv2.circle(im1, center1, radius=10, color=(0, 0, 255), thickness=-1)  # Red dot
+            cv2.circle(im2, center2, radius=10, color=(0, 0, 255), thickness=-1)
+
+            # Resize to same height if needed
+            if im1.shape[0] != im2.shape[0]:
+                height = min(im1.shape[0], im2.shape[0])
+                im1 = cv2.resize(im1, (int(im1.shape[1] * height / im1.shape[0]), height))
+                im2 = cv2.resize(im2, (int(im2.shape[1] * height / im2.shape[0]), height))
+
+            # Concatenate and show
+            combined = np.hstack((im2, im1))
+            cv2.imshow("Compared Sides with Contour Markers", combined)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+        return color_score + confidence*1.6
+
+    window = False
     # Check adjacent pieces and compute the score
     if row > 0 and grid[row - 1][col] is not None:
-        score += calc_score(sides[3], grid[row - 1][col].get_sides()[1])
+        score += calc_score(sides[3], grid[row - 1][col].get_sides()[1], window)
 
     if row < len(grid) - 1 and grid[row + 1][col] is not None:
-        score += calc_score(sides[1], grid[row + 1][col].get_sides()[3])
+        score += calc_score(sides[1], grid[row + 1][col].get_sides()[3],window)
 
 
     if col > 0 and grid[row][col - 1] is not None:
-        score += calc_score(sides[0], grid[row][col - 1].get_sides()[2])
+        score += calc_score(sides[0], grid[row][col - 1].get_sides()[2],window)
 
     if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
-        score += calc_score(sides[2], grid[row][col + 1].get_sides()[0])
+        score += calc_score(sides[2], grid[row][col + 1].get_sides()[0],window)
 
 
     print(f"{piece.index} : final score = {score}")

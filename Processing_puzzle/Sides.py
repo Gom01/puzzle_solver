@@ -1,6 +1,6 @@
 import numpy as np
 class Side:
-    def __init__(self, side_contour):
+    def __init__(self, side_contour, piece_image):
         self.side_info = None #[-1,1,1,0]
         self.side_contour = side_contour #[...,...,...]
         self.side_color = None #[[...,..,...],[...,...,..],..]
@@ -8,6 +8,11 @@ class Side:
         self.side_size = None
         self.side_score = None
         self.side_color_per_point = None  # <-- nouvelle variable pour color2
+        self.piece_image = piece_image
+
+
+    def get_piece_image(self):
+        return self.piece_image
 
     def set_side_info(self, side_info):
         self.side_info = side_info
