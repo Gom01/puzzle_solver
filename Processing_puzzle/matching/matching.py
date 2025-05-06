@@ -2,7 +2,7 @@ from unittest.util import sorted_list_difference
 import numpy as np
 import cv2
 from Processing_puzzle import Puzzle as p
-from side_shape import side_similarities
+from side_shape import side_similarities, color_similarities2
 from side_shape import color_similarities
 
 def compute_fit_score(piece, grid, row, col):
@@ -15,7 +15,15 @@ def compute_fit_score(piece, grid, row, col):
 
         colors1, weight1 = side1.get_side_color()
         colors2, weight2 = side2.get_side_color()
-        color_score = color_similarities(colors1, weight1, colors2, weight2)
+        #color_score = color_similarities(colors1, weight1, colors2, weight2)
+
+        colors_1f = side1.get_side_color2()
+        colors_2f = side2.get_side_color2()
+        print("colors_1f :",colors_1f)
+        print("colors_2f :",colors_2f)
+
+        color_score = color_similarities2(colors_1f, colors_2f)
+        print("color_score  :",color_score)
 
         if s1 == 2 or s2 == 2:
             return color_score - 2
@@ -27,7 +35,7 @@ def compute_fit_score(piece, grid, row, col):
         max_size = max(size1, size2)
         size_score = max(0, 1 - (diff / max_size))
 
-        return color_score - score_sides + size_score
+        return color_score #- score_sides + size_score
 
 
     # Check adjacent pieces and compute the score
@@ -245,6 +253,9 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
 def build_image(solution_indices, pieces, scale_factor=0.2):
     max_width, max_height = 0, 0
 
+    #for piece in pieces:
+     #   piece.rotate_piece_by_corners()
+
     for row in solution_indices:
         for piece in row:
             if piece is not None:
@@ -258,7 +269,10 @@ def build_image(solution_indices, pieces, scale_factor=0.2):
     for row_idx, row in enumerate(solution_indices):
         for col_idx, piece in enumerate(row):
             if piece is not None:
+
+
                 rotated_img = piece.rotate_image_by_rotation()
+
                 img = cv2.resize(rotated_img, (0, 0), fx=scale_factor, fy=scale_factor)
             else:
                 img = np.zeros((max_height, max_width, 3), dtype=np.uint8)

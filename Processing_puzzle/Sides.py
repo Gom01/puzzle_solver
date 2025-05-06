@@ -7,6 +7,7 @@ class Side:
         self.side_color_weight = None
         self.side_size = None
         self.side_score = None
+        self.side_color_per_point = None  # <-- nouvelle variable pour color2
 
     def set_side_info(self, side_info):
         self.side_info = side_info
@@ -48,3 +49,16 @@ class Side:
             self.side_size = distance
 
         return self.side_size
+
+    def set_side_color2(self, color_list):
+        """
+        Stocke la liste des couleurs dominantes par point.
+        :param color_list: list of (R, G, B)
+        """
+        self.side_color_per_point = color_list
+
+    def get_side_color2(self):
+        """
+        Retourne la liste des couleurs dominantes par point.
+        """
+        return self.side_color_per_point

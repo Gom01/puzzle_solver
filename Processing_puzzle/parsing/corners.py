@@ -144,7 +144,7 @@ def find_corners(myPuzzle):
         contours = piece.get_contours()
         contour_np = np.array(contours, dtype=np.int32).reshape((-1, 1, 2))
         print("contour :",contour_np)
-        afficher_contour_polaire(contour_np)
+        #afficher_contour_polaire(contour_np)
 
         # Centroid of the piece
         moments = cv.moments(contour_np)
@@ -495,7 +495,7 @@ def find_corners(myPuzzle):
 
         # print(f"Corners of piece number {piece.index} are correct",piece.corners)
 
-        piece.set_picture_debug(colored_img)
+        #piece.set_picture_debug(colored_img)
 
         # print("--------------------------------------------------------------------------------------------------\n\n\n")
 

@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 class Piece:
     def __init__(self, image_black_white,image_color, contours, index):
         """
@@ -119,6 +120,7 @@ class Piece:
 
     def rotate_image_by_rotation(self):
         img = self.image_color
+
         k = int(self.number_rotation) % 4
 
         if k == 1:
@@ -131,3 +133,47 @@ class Piece:
 
         return img
 
+    def rotate_piece_by_corners(self):
+        """
+        Cette méthode ajuste l'orientation de la pièce en fonction de ses coins.
+        Elle aligne le côté 1 (le côté bas de la pièce) avec l'axe X.
+        """
+        # Supposons que les coins sont dans `self.corners` et qu'ils sont dans un ordre précis
+        # Par exemple, le coin bas-gauche et le coin bas-droit correspondent à `side1`.
+        sorted_corners = sorted(self.corners, key=lambda x: x[1], reverse=True)
+        bottom_left_corner = sorted_corners[0]
+        bottom_right_corner = sorted_corners[1]
+
+        print("Coins bas (pour aligner le côté 1) :", bottom_left_corner, bottom_right_corner)
+
+        x1, y1 = bottom_left_corner
+        x2, y2 = bottom_right_corner
+
+        # Calculer l'angle pour aligner les coins bas avec l'axe X
+        dx = x2 - x1
+        dy = y2 - y1
+
+        # Calculer l'angle entre les coins et l'axe X
+        angle = np.arctan2(dy, dx)
+        angle_degrees = np.degrees(angle)  # Convertir en degrés
+        if abs(angle_degrees) < 10 or abs(abs(angle_degrees) - 180) < 10:
+            angle_degrees = 0
+
+        print(f"Angle pour aligner les coins avec l'axe X : {angle_degrees}°")
+
+        # Appliquer la rotation pour aligner les coins bas avec l'axe X
+        self.image_color = self.rotate_image_by_angle(angle_degrees)
+
+        # Appliquer la rotation en fonction de `self.number_rotation`
+        return self.image_color
+
+    def rotate_image_by_angle(self, angle_degrees):
+        """
+        Effectue la rotation de l'image en fonction de l'angle donné.
+        """
+        rows, cols = self.image_color.shape[:2]
+        rotation_matrix = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle_degrees, 1)
+
+        # Appliquer la rotation
+        rotated_image = cv2.warpAffine(self.image_color, rotation_matrix, (cols, rows))
+        return rotated_image

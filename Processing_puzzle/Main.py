@@ -1,6 +1,7 @@
 import Puzzle as puzzle
 import cv2
 
+
 from Processing_puzzle.parsing.straight_piece import straighten_piece
 from Processing_puzzle.parsing.color_analysis_v2 import find_color
 from Processing_puzzle.parsing.corners import find_corners
@@ -18,7 +19,7 @@ myPuzzle = puzzle.Puzzle()
 parse_image(image_path, myPuzzle)
 find_corners(myPuzzle)
 find_sides(myPuzzle)
-find_color(myPuzzle,True)
+find_color(myPuzzle,False)
 sides_information(myPuzzle)
 
 
