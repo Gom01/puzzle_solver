@@ -3,7 +3,8 @@ import numpy as np
 import cv2
 from Processing_puzzle import Puzzle as p
 from test_sides import side_similarities
-from side_shape import color_similarities
+from side_shape import color_similarities2
+
 
 def compute_fit_score(piece, grid, row, col):
     score = 0
@@ -17,10 +18,17 @@ def compute_fit_score(piece, grid, row, col):
         #colors2, weight2 = side2.get_side_color()
         #color_score = color_similarities(colors1, weight1, colors2, weight2)
 
-        #if s1 == 2 or s2 == 2:
-        #    return color_score - 2
 
-        confidence = side_similarities(side1, side2, True)
+        colors_1f = side1.get_side_color2()
+        colors_2f = side2.get_side_color2()
+        print("colors_1f :",colors_1f)
+        print("colors_2f :",colors_2f)
+        #confidence = side_similarities(side1, side2, True)
+        color_score = color_similarities2(colors_1f, colors_2f)
+        print("color_score  :", color_score)
+
+        if s1 == 2 or s2 == 2:
+            return color_score - 2
 
         #size1 = side1.get_side_size()
         #size2 = side2.get_side_size()
@@ -28,7 +36,7 @@ def compute_fit_score(piece, grid, row, col):
         #max_size = max(size1, size2)
         #size_score = max(0, 1 - (diff / max_size))
 
-        return confidence
+        return color_score #confidence
 
 
     # Check adjacent pieces and compute the score

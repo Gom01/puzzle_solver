@@ -131,5 +131,3 @@ def sides_information(myPuzzle):
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("Sides info found...")
     return ()
-
-

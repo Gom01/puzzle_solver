@@ -1,5 +1,5 @@
 import itertools
-
+from math import sqrt
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
@@ -35,5 +35,22 @@ def color_similarities(colors1, weights1, colors2, weights2):
     print(f"🎨 Weighted Table Similarity Score: {score:.4f}")
     return score
 
+
+def color_similarities2(colors1, colors2, weight=1.0):
+    """
+    Compare deux listes de couleurs et retourne un score de similarité basé sur la distance euclidienne.
+
+    Chaque couleur est un tableau NumPy [R, G, B].
+    """
+    score = 0
+    length = min(len(colors1), len(colors2))  # On s'assure de comparer jusqu'à la longueur minimale des deux listes
+
+    for c1, c2 in zip(colors1[:length], colors2[:length]):
+        # Distance euclidienne entre les deux couleurs (R, G, B)
+        dist = sqrt(np.sum((c1 - c2) ** 2))  # Racine carrée de la somme des carrés des différences
+        similarity = int(weight * (255 * sqrt(3)) / (dist + 1))  # On inverse la distance pour la similarité
+        score += similarity
+
+    return score
 
 
