@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.spatial import procrustes
+from math import sqrt
 
 
 
@@ -52,5 +53,3 @@ def color_similarities2(colors1, colors2, weight=1.0):
         score += similarity
 
     return score
-
-
