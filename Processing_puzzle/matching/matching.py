@@ -270,52 +270,101 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
     return success
 
 
-def build_image(solution_indices, pieces, scale_factor=0.2):
-    max_width, max_height = 0, 0
+import cv2
+import numpy as np
 
-    # First pass: determine max width/height for grid layout
+def build_image(solution_indices, pieces, scale_factor=0.5):
+    def crop_piece(img):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
+        coords = cv2.findNonZero(thresh)
+        if coords is None:
+            return img
+        x, y, w, h = cv2.boundingRect(coords)
+        return img[y:y+h, x:x+w]
+
+    rows_images, max_width = [], 0
     for row in solution_indices:
+        cropped_imgs, heights = [], []
         for piece in row:
             if piece is not None:
-                rotated_img = piece.rotate_image_by_rotation()
-                img = cv2.resize(rotated_img, (0, 0), fx=scale_factor, fy=scale_factor)
-                max_width = max(max_width, img.shape[1])
-                max_height = max(max_height, img.shape[0])
-
-    final_image = np.ones((max_height * len(solution_indices), max_width * len(solution_indices[0]), 3), dtype=np.uint8) * 255
-
-    # Second pass: place each image and add text
-    for row_idx, row in enumerate(solution_indices):
-        for col_idx, piece in enumerate(row):
-            if piece is not None:
-                rotated_img = piece.rotate_image_by_rotation()
-                img = cv2.resize(rotated_img, (0, 0), fx=scale_factor, fy=scale_factor)
-                index = piece.get_index()
+                img = piece.rotate_image_by_rotation()
+                img = crop_piece(img)
+                img = cv2.resize(img, (0, 0), fx=scale_factor, fy=scale_factor)
+                cropped_imgs.append(img)
+                heights.append(img.shape[0])
             else:
-                img = np.zeros((max_height, max_width, 3), dtype=np.uint8)
-                index = None
-                print(f"Piece missing at ({row_idx}, {col_idx}) - No image to place.")
+                cropped_imgs.append(None)
+                heights.append(0)
 
-            x_offset = col_idx * max_width + (max_width - img.shape[1]) // 2
-            y_offset = row_idx * max_height + (max_height - img.shape[0]) // 2
-
-            if (y_offset + img.shape[0] <= final_image.shape[0]) and (x_offset + img.shape[1] <= final_image.shape[1]):
-                final_image[y_offset:y_offset + img.shape[0], x_offset:x_offset + img.shape[1]] = img
-
-                # Draw index if piece exists
-                if index is not None:
-                    text = f"{index}"
-                    font = cv2.FONT_HERSHEY_SIMPLEX
-                    font_scale = 0.7
-                    thickness = 2
-                    text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
-                    text_x = x_offset + (img.shape[1] - text_size[0]) // 2
-                    text_y = y_offset + text_size[1] + 10
-                    cv2.putText(final_image, text, (text_x, text_y), font, font_scale, (0, 0, 255), thickness, cv2.LINE_AA)
+        row_height = max(heights)
+        row_pieces = []
+        for img in cropped_imgs:
+            if img is not None:
+                h, w = img.shape[:2]
+                pad_top = (row_height - h) // 2
+                pad_bottom = row_height - h - pad_top
+                img_padded = cv2.copyMakeBorder(img, pad_top, pad_bottom, 0, 0, cv2.BORDER_CONSTANT, value=(255,255,255))
+                row_pieces.append(img_padded)
             else:
-                print(f"Skipping piece at ({row_idx}, {col_idx}) due to size mismatch.")
+                row_pieces.append(np.ones((row_height, 1, 3), dtype=np.uint8) * 255)
 
-    return final_image
+        row_img = np.hstack(row_pieces)
+        rows_images.append(row_img)
+        max_width = max(max_width, row_img.shape[1])
+
+    full_height = sum(img.shape[0] for img in rows_images)
+    final_img = np.ones((full_height, max_width, 3), dtype=np.uint8) * 255
+    y_offset = 0
+    for row_img in rows_images:
+        final_img[y_offset:y_offset + row_img.shape[0], :row_img.shape[1]] = row_img
+        y_offset += row_img.shape[0]
+
+    # Interactive window with rotation
+    angle = 0
+    window_name = 'Final Puzzle Viewer'
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    while True:
+        h, w = final_img.shape[:2]
+        center = (w // 2, h // 2)
+        rot_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+        rotated = cv2.warpAffine(final_img, rot_matrix, (w, h), flags=cv2.INTER_LINEAR, borderValue=(255, 255, 255))
+        cv2.imshow(window_name, rotated)
+        key = cv2.waitKey(0) & 0xFF
+        if key == 27:  # ESC
+            break
+        elif key == ord('r'):
+            angle += 90
+    cv2.destroyAllWindows()
+
+    return final_img
+
+
+def interactive_view(image):
+    angle = 0
+    window_name = 'Puzzle Viewer'
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+
+    while True:
+        h, w = image.shape[:2]
+        center = (w // 2, h // 2)
+        rot_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+        rotated = cv2.warpAffine(image, rot_matrix, (w, h), flags=cv2.INTER_LINEAR, borderValue=(255,255,255))
+
+        cv2.imshow(window_name, rotated)
+        key = cv2.waitKey(0) & 0xFF
+
+        if key == 27:  # ESC to quit
+            break
+        elif key == ord('r'):
+            angle += 90
+
+    cv2.destroyAllWindows()
+
+# Example usage:
+# final_img = build_image(solution_indices, pieces, scale_factor=0.5)
+# interactive_view(final_img)
+
 
 
 
