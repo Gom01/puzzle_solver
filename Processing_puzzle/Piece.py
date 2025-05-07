@@ -109,6 +109,11 @@ class Piece:
         self.moment = moment
         return
 
+    def set_position(self, position):
+        self.x = position[0]
+        self.y = position[1]
+        return
+
     def get_moment(self):
         return self.moment
 
