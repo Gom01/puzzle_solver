@@ -10,7 +10,7 @@ from Processing_puzzle.parsing.sides_finder import find_sides
 
 
 def main():
-    image_path = '../images/p1_b/puzzle_24_bis.jpg'
+    image_path = '../images/p1_b/puzzle2.jpg'
 
     # Important note for image acquisition
     print("⚠️  Ensure no pieces are touching and a black background is used.")
@@ -35,7 +35,7 @@ def main():
         for i, side in enumerate(sides):
             contour = side.get_side_contour()
             midpoint = contour[len(contour) // 2]
-            cv2.putText(img, str(f"{i}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 5, cv2.LINE_AA)
+            cv2.putText(img, str(f"{i} : {side.get_side_info()}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 5, cv2.LINE_AA)
 
         window_name = f'Piece {idx}'
         cv2.imshow(window_name, img)
