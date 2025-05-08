@@ -5,9 +5,9 @@ from Processing_puzzle import Puzzle as p
 
 from Processing_puzzle import Puzzle as p
 
-def sides_information(myPuzzle):
+def sides_information(myPuzzle, windows=False):
 
-    def type_of_sides(piece,windows=False):
+    def type_of_sides(piece,windows):
         sides = piece.get_sides()  # Liste des côtés
         img = piece.get_color_image().copy() # Image en noir et blanc
 
@@ -16,6 +16,7 @@ def sides_information(myPuzzle):
         # Centre de masse du contour global de la pièce
         piece_contour = np.array(piece.get_contours()).reshape((-1, 1, 2))
         M1 = cv.moments(piece_contour)
+        print(M1)
 
         piece.set_moment(M1)
 
@@ -72,7 +73,7 @@ def sides_information(myPuzzle):
 
             #print(cv.contourArea(hull))
 
-            if cv.contourArea(hull) < 10000:
+            if cv.contourArea(hull) < 5000: #TODO
                 type_cote = "droit"
                 color = (255, 255, 0)  # Jaune
                 side.set_side_info(0)
@@ -125,7 +126,7 @@ def sides_information(myPuzzle):
     # Appliquer la fonction pour chaque pièce
     for piece in pieces:
         if piece.sides:
-            type_of_sides(piece,False)
+            type_of_sides(piece,windows)
 
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')

@@ -130,12 +130,10 @@ def afficher_contour_polaire(contour_np, percentile_seuil=80, distance_tolerance
     plt.show()
 
 
-def find_corners(myPuzzle):
+def find_corners(myPuzzle, window=False):
     pieces = myPuzzle.get_pieces()
 
     for idx, piece in enumerate(pieces):
-
-        # Get basics information and conversion
         colored_img = piece.get_color_image()
         colored_img = colored_img.copy()
         colored_img2 = colored_img.copy()
@@ -143,39 +141,23 @@ def find_corners(myPuzzle):
 
         contours = piece.get_contours()
         contour_np = np.array(contours, dtype=np.int32).reshape((-1, 1, 2))
-        #print("contour :",contour_np)
-        #afficher_contour_polaire(contour_np)
 
-        # Centroid of the piece
         moments = cv.moments(contour_np)
         cx = int(moments['m10'] / moments['m00'])
         cy = int(moments['m01'] / moments['m00'])
-        # print("cx - cy :",cx, cy)
 
-        # 1st approach : Draw basic polygon arround my piece to get the most important points
         epsilon = 0.005 * cv.arcLength(contour_np, True)
         approx = cv.approxPolyDP(contour_np, epsilon, True)
         hull = cv.convexHull(approx)
 
-        # #Goal always have 4 points
-        # cv.polylines(colored_img, [hull], isClosed=True, color=(0, 255, 0), thickness=2)
-        for pt in hull:
-            cv.circle(colored_img, tuple(pt[0]), 6, (0, 255, 0), -1)
-        cv.circle(colored_img, (cx, cy), 7, (0, 0, 255), -1)
-        # cv.imshow("Important points", colored_img)
-        # cv.waitKey(0)
+        points = [tuple(pt[0]) for pt in hull]
 
-        image = colored_img.copy()
-
-        # 2nd approach : using the centroid removes all the points which are not symetric
         def distance_point_to_line(x1, y1, x2, y2, cx, cy):
-            """Returns the perpendicular distance from point (cx, cy) to the line through (x1,y1)-(x2,y2)."""
             numerator = abs((y2 - y1) * cx - (x2 - x1) * cy + x2 * y1 - y2 * x1)
             denominator = math.hypot(y2 - y1, x2 - x1)
             return numerator / denominator if denominator != 0 else float('inf')
 
         def get_points_through_centroid(points, cx, cy, radius=40):
-            """Returns a list of unique points where lines between them pass within radius of centroid."""
             valid_points = set()
             for i, p1 in enumerate(points):
                 x1, y1 = p1
@@ -189,28 +171,13 @@ def find_corners(myPuzzle):
                         valid_points.add(p2)
             return list(valid_points)
 
-        points = [tuple(pt[0]) for pt in hull]
         important_points = get_points_through_centroid(points, cx, cy, radius=40)
-        # print("points: ", points)
-        # print("Important points: ", important_points)
-        # print("\n\n\n\n")
 
-        for point in important_points:
-            cv.circle(image, point, 6, (0, 0, 255), -1)
-            converted_point = (int(point[0]), int(point[1]))
-            cv.putText(image, f"${converted_point}", (point[0] + 5, point[1] - 5), cv.FONT_HERSHEY_SIMPLEX, 0.8,
-                       (0, 255, 0), 1, cv.LINE_AA)
-
-        # cv.imshow("Important points", colored_img)
-        # cv.waitKey(0)
-
-        # Fonction pour calculer le centroïde
         def calculate_centroid(points):
             x = sum([pt[0] for pt in points]) / len(points)
             y = sum([pt[1] for pt in points]) / len(points)
             return (x, y)
 
-        # Fonction pour calculer l'angle entre trois points
         def calculate_angle(p1, p2, p3):
             v1 = np.array([p1[0] - p2[0], p1[1] - p2[1]])
             v2 = np.array([p3[0] - p2[0], p3[1] - p2[1]])
@@ -218,10 +185,9 @@ def find_corners(myPuzzle):
             norm_v1 = np.linalg.norm(v1)
             norm_v2 = np.linalg.norm(v2)
             cos_theta = dot_product / (norm_v1 * norm_v2)
-            angle = np.arccos(cos_theta) * 180.0 / np.pi  # Conversion en degrés
+            angle = np.arccos(cos_theta) * 180.0 / np.pi
             return angle
 
-        # Fonction pour calculer l'aire d'un quadrilatère à partir des coordonnées de ses points
         def calculate_area(quad):
             x1, y1 = quad[0]
             x2, y2 = quad[1]
@@ -229,35 +195,26 @@ def find_corners(myPuzzle):
             x4, y4 = quad[3]
             return 0.5 * abs(x1 * y2 + x2 * y3 + x3 * y4 + x4 * y1 - y1 * x2 - y2 * x3 - y3 * x4 - y4 * x1)
 
-        # Fonction pour calculer le moment d'inertie (lorsque les points sont éloignés du centroïde)
         def calculate_moment_of_inertia(quad, centroid):
             moment = 0
             for point in quad:
                 distance = np.linalg.norm(np.array(point) - np.array(centroid))
-                moment += distance ** 2  # Moment d'inertie (sommer les carrés des distances)
+                moment += distance ** 2
             return moment
 
-        # Fonction pour vérifier que les longueurs des côtés sont à ±20% similaires
         def check_side_lengths(quad):
-            # print(f"quad {quad}")
             lengths = []
             for i in range(4):
                 p1 = quad[i]
                 p2 = quad[(i + 1) % 4]
                 length = np.linalg.norm(np.array(p1) - np.array(p2))
-                # print(f"side length ${i}:",length)
                 lengths.append(length)
-
             max_length = max(lengths)
             min_length = min(lengths)
             mean_length = np.mean(lengths)
-            # print(f"quad {quad}, length ${i}:", (max_length - min_length) / mean_length,"\n")
-            # Vérifier si la différence entre la longueur maximale et minimale est inférieure à 20% de la longueur moyenne
             return (max_length - min_length) / mean_length <= 0.2
 
-        # Fonction de vérification des angles
         def is_valid_quadrilateral(quad):
-            # print(f"quad {quad}")
             angles = []
             for i in range(4):
                 p1 = quad[i]
@@ -265,73 +222,37 @@ def find_corners(myPuzzle):
                 p3 = quad[(i + 2) % 4]
                 angle = calculate_angle(p1, p2, p3)
                 angles.append(angle)
-
-            #   print(f"angle ${i}:",angle)
-            # print("\n")
-            # Vérification que tous les angles sont compris entre 85° et 95°
             return all(80 <= angle <= 99 for angle in angles)
 
-        # Fonction principale pour trouver le meilleur quadrilatère
+        from itertools import combinations
+
         def find_best_corners(points, image):
             best_quads = []
-
-            # Vérification de tous les quadruplets possibles
             for quad in combinations(points, 4):
-
-                # Calcul du centroïde du quadrilatère
                 centroid_quad = calculate_centroid(quad)
-
-                # Vérification des angles
                 if not is_valid_quadrilateral(quad):
-                    continue  # Si les angles sont invalides, on passe au quadrilatère suivant
-
-                # Vérification des longueurs des côtés
+                    continue
                 if not check_side_lengths(quad):
-                    continue  # Si les longueurs des côtés ne sont pas similaires, on passe au quadrilatère suivant
-
-                # Calcul du moment d'inertie
+                    continue
                 moment = calculate_moment_of_inertia(quad, centroid_quad)
-
-                # Calcul de l'aire du quadrilatère
                 area = calculate_area(quad)
-
-                # print(f"Moment d'inertie: {moment}")
-                # print(f"Aire: {area}")
-
-                # Ajouter au tableau si les critères sont remplis
                 best_quads.append((quad, centroid_quad, moment, area))
-
-            # Trier les quadrilatères par aire (du plus petit au plus grand)
             best_quads.sort(key=lambda x: x[3])
-
             if len(best_quads) > 0:
-                # Retenir le quadrilatère avec l'aire la plus petite
                 best_quad = best_quads[0][0]
-
-                # Dessiner les points du meilleur quadrilatère
                 for point in best_quad:
-                    cv.circle(image, point, 8, (0, 255, 0), -1)  # Vert
+                    cv.circle(image, point, 8, (0, 255, 0), -1)
+                return image, list(best_quad)
+            return image, []
 
-                return image, list(best_quad)  # Retourner l'image et les coins du quadrilatère
-
-            return image, []  # Aucun quadrilatère valide
-
-        image, filtered_points2 = find_best_corners(points, image)
+        image, filtered_points2 = find_best_corners(points, colored_img.copy())
 
         points = []
-
-        # print("filtered_points2: ", filtered_points2,"\n\n")
         if (len(filtered_points2) == 4):
             points = filtered_points2
         else:
-
-            # print("Important_points after find_best_corners",important_points)
-
-            # print("\n\n\n\n")
-
-            # 3th approach : removes all the points which are between two others (middle points)
             def dist(p1, p2):
-                return int(np.sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
+                return int(np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2))
 
             threshold = 1
             points_middle = important_points.copy()
@@ -341,21 +262,11 @@ def find_corners(myPuzzle):
                     B = important_points[j]
                     for k in range(0, len(important_points)):
                         C = important_points[k]
-                        if (A[0], A[1]) != (B[0], B[1]) and (A[0], A[1]) != (C[0], C[1]) and (C[0], C[1]) != (
-                        B[0], B[1]):
-                            if (dist(A, B) + dist(B, C)) - threshold <= dist(A, C) <= (
-                                    dist(A, B) + dist(B, C)) + threshold:
-                                # print(f"{round(dist(A, C))} = {round(dist(A, B)) + round(dist(B, C))}")
-                                # cv2.circle(img, A, 8, (0, 255, 0), -1)
+                        if A != B and A != C and C != B:
+                            if (dist(A, B) + dist(B, C)) - threshold <= dist(A, C) <= (dist(A, B) + dist(B, C)) + threshold:
                                 if B in points_middle:
                                     points_middle.remove(B)
 
-            # for point in points_middle :
-            #   cv.circle(image, point, 7, (255, 0, 255), -1)
-            # cv.imshow("Important points", colored_img)
-            # cv.waitKey(0)
-
-            # 4th approach : order all points (clockwise) and check distance compared to maximum distance
             def order_points_by_angle(all_points):
                 points = np.array(all_points)
                 centroid = np.mean(points, axis=0)
@@ -370,134 +281,73 @@ def find_corners(myPuzzle):
 
             def remove_close_points(all_points, image):
                 ordered_points = order_points_by_angle(all_points)
-
                 points = np.array(ordered_points)
-
-                # Step 1: Calculate pairwise distances between consecutive points (i -> i+1)
                 pairwise_distances = []
                 for i in range(len(points) - 1):
                     distance = np.linalg.norm(points[i] - points[i + 1])
                     pairwise_distances.append(distance)
                 distance = np.linalg.norm(points[len(points) - 1] - points[0])
                 pairwise_distances.append(distance)
-
-                # Step 2: Find the maximum distance between consecutive points
                 max_distance = np.max(pairwise_distances)
-
                 threshold = max_distance / 1.3
-
-                # Step 3: Visualize threshold
-                for i, point in enumerate(points):
-                    if i < len(points) - 1:
-                        next_point = points[i + 1]
-                    else:
-                        next_point = points[0]
-                    distance = np.linalg.norm(point - next_point)
-                    if distance >= threshold:
-                        color = (0, 255, 0)  # Green: Points that will be kept
-                    else:
-                        color = (0, 0, 255)  # Red: Points that will be removed
-                    cv.line(image, tuple(point), tuple(next_point), color, 2)
-
-                # Step 4: Filter points: keep only those points whose distance to neighbors is >= threshold
                 filtered_points = []
                 for i, point in enumerate(points):
                     if i > 0:
                         distance_to_prev = np.linalg.norm(point - points[i - 1])
                     else:
-                        distance_to_prev = float('inf')  # First point has no previous neighbor
-
+                        distance_to_prev = float('inf')
                     if i < len(points) - 1:
                         distance_to_next = np.linalg.norm(point - points[i + 1])
                     else:
-                        distance_to_next = float('inf')  # Last point has no next neighbor
-
-                    # Keep the point only if both distances to neighbors are >= threshold
+                        distance_to_next = float('inf')
                     if distance_to_prev >= threshold or distance_to_next >= threshold:
                         filtered_points.append(tuple(point))
-
                 return filtered_points, image
 
             filtered_points, image_result = remove_close_points(points_middle, colored_img2)
-
             colored_img = image
 
-            # for point in filtered_points :
-            #   cv.circle(colored_img, point, 7, (0, 0, 255), -1)
-            # cv.imshow("Important points", image_result)
-            # cv.waitKey(0)
-
-            # 5th approach : Keep only the points which could form a rectangle (always 4)
             contour_np = np.array(filtered_points, dtype=np.int32).reshape((-1, 1, 2))
 
             def get_main_corners_from_min_rect(contour, search_radius=20):
-
-                # print("contour de get_main_corners_from_min_rect", contour)
-
-                rect = cv.minAreaRect(contour)  # center, (w, h), angle
-
-                # print("rect", rect)
-
-                box = cv.boxPoints(rect)  # 4 corner points of rotated rectangle
-
-                # print("box", box)
-
+                rect = cv.minAreaRect(contour)
+                box = cv.boxPoints(rect)
                 box = np.intp(box)
-
-                # print("box np", box)
-
-                # Refine: find the closest actual contour point for each box corner
                 refined_corners = []
                 for corner in box:
                     dists = np.linalg.norm(contour.reshape(-1, 2) - corner, axis=1)
                     closest_pt = contour.reshape(-1, 2)[np.argmin(dists)]
                     refined_corners.append(tuple(closest_pt))
-
-                # print("refined_corners", refined_corners)
-                # print("------------------------------------------------------------------------------\n\n")
-
                 return refined_corners
 
             points = get_main_corners_from_min_rect(contour_np)
 
-            for pt in points:
-                cv.circle(image, pt, 10, (255, 255, 0), -1)
-            # cv.imshow('Final', colored_img3)
-            # cv.waitKey(0)
-
         def order_corners(corners, cx, cy):
-            # Calculate the angle of each corner relative to the centroid
             def calculate_angle(pt):
                 dx, dy = pt[0] - cx, pt[1] - cy
                 return np.arctan2(dy, dx)
-
-            # Sort corners based on angle
             sorted_corners = sorted(corners, key=calculate_angle)
-
-            # Now, reorder them to ensure top-left, top-right, bottom-right, bottom-left
             top_left = sorted_corners[0]
             bottom_left = sorted_corners[1]
             bottom_right = sorted_corners[2]
             top_right = sorted_corners[3]
-
-            # Now that the points are sorted by angle, we can reorder them to match the required order
-            ordered_corners = [top_left, top_right, bottom_right, bottom_left]
-
-            return ordered_corners
+            return [top_left, top_right, bottom_right, bottom_left]
 
         if (points[0] == points[1]) or (points[0] == points[2]) or (points[0] == points[3]) or (points[2] == points[3]):
             print(f"Corners of piece number {piece.index} are incorrect")
             piece.corners = [[-1, -1], [-1, -1], [-1, 1], [1, -1]]
         else:
-            # print("Points :",points)
             ordered_points = order_corners(points, cx, cy)
             piece.corners = ordered_points
 
-        # print(f"Corners of piece number {piece.index} are correct",piece.corners)
-
-        #piece.set_picture_debug(colored_img)
-
-        # print("--------------------------------------------------------------------------------------------------\n\n\n")
+            # === SHOW FINAL CORNERS IF window=True ===
+            if window:
+                final_img = colored_img3.copy()
+                for pt in ordered_points:
+                    cv.circle(final_img, pt, 10, (0, 255, 255), -1)  # Yellow corners
+                cv.imshow(f"Final Corners - Piece {piece.index}", final_img)
+                cv.waitKey(0)
+                cv.destroyWindow(f"Final Corners - Piece {piece.index}")
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
     print("Corners saved...")

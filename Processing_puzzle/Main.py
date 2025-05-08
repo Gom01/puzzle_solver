@@ -22,11 +22,11 @@ def main():
 
     myPuzzle = puzzle.Puzzle()
 
-    parse_image(image_path, myPuzzle)
-    find_corners(myPuzzle)
-    find_sides(myPuzzle)
+    parse_image(image_path, myPuzzle, True)
+    find_corners(myPuzzle, True)
+    find_sides(myPuzzle, False)
     find_color(myPuzzle, False)
-    sides_information(myPuzzle)
+    sides_information(myPuzzle, False)
     straighten_piece(myPuzzle)
 
     pieces = myPuzzle.get_pieces()
@@ -35,12 +35,13 @@ def main():
         infos = piece.get_sides_info()
         sides = piece.get_sides()
         img = piece.get_color_image().copy()
+        corners = piece.get_corners()
 
         # Annotate side indices
         for i, side in enumerate(sides):
             contour = side.get_side_contour()
             midpoint = contour[len(contour) // 2]
-            cv2.putText(img, str(f"{i}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 5, cv2.LINE_AA)
+            cv2.putText(img, str(f"{i} : {side.get_side_info()}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 5, cv2.LINE_AA)
 
         window_name = f'Piece {idx}'
         cv2.imshow(window_name, img)
