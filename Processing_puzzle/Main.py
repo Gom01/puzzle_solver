@@ -10,7 +10,12 @@ from Processing_puzzle.parsing.sides_finder import find_sides
 
 
 def main():
-    image_path = '../images/p1_b/puzzle_24_bis.jpg'
+    image_path = '../images/p1_b/puzzle_24_bis.jpg' # Fonctionne
+    #image_path = '../images/p1_b/Natel.Black1.jpg' # marche pas
+    #image_path = '../images/pictures/puzzle1.jpg' #  marche pas
+    #image_path = '../images/pictures/puzzle2.jpg' # marche pas sur la 2ème étape sur le Matching
+    #image_path = '../images/pictures/puzzle49.jpg'
+
 
     # Important note for image acquisition
     print("⚠️  Ensure no pieces are touching and a black background is used.")
