@@ -4,56 +4,58 @@ import cv2
 from Processing_puzzle import Puzzle as p
 from test_sides import side_similarities
 from side_shape import color_similarities2
+import itertools
+
+
+def calc_score(side1, side2, window=False):
+    s1, s2 = side1.get_side_info(), side2.get_side_info()
+
+    ##Florian's method
+    colors_array1 = side1.get_side_color2()
+    colors_array2 = side2.get_side_color2()
+    color_score = color_similarities2(colors_array1, colors_array2, window=False)
+
+    ##Flavien's method
+    confidence = side_similarities(side1, side2, False)
+
+    # size1 = side1.get_side_size()
+    # size2 = side2.get_side_size()
+    # diff = abs(size1 - size2)
+    # max_size = max(size1, size2)
+    # size_score = max(0, 1 - (diff / max_size))
+
+    if window:
+        im1 = side1.get_piece_image().copy()
+        im2 = side2.get_piece_image().copy()
+        s1_c, s2_c = np.array(side1.get_side_contour()), np.array(side2.get_side_contour())
+
+        # Compute contour centroids
+        center1 = tuple(np.mean(s1_c, axis=0).astype(int))
+        center2 = tuple(np.mean(s2_c, axis=0).astype(int))
+
+        # Draw circles at the center of each contour
+        cv2.circle(im1, center1, radius=10, color=(0, 0, 255), thickness=-1)  # Red dot
+        cv2.circle(im2, center2, radius=10, color=(0, 0, 255), thickness=-1)
+
+        # Resize to same height if needed
+        if im1.shape[0] != im2.shape[0]:
+            height = min(im1.shape[0], im2.shape[0])
+            im1 = cv2.resize(im1, (int(im1.shape[1] * height / im1.shape[0]), height))
+            im2 = cv2.resize(im2, (int(im2.shape[1] * height / im2.shape[0]), height))
+
+        # Concatenate and show
+        combined = np.hstack((im2, im1))
+        cv2.imshow("Compared Sides with Contour Markers", combined)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    return color_score + confidence * 1.6
 
 
 def compute_fit_score(piece, grid, row, col):
     score = 0
     sides = piece.get_sides()
 
-    def calc_score(side1, side2, window=False):
-
-        s1, s2 = side1.get_side_info(), side2.get_side_info()
-
-        ##Florian's method
-        colors_array1 = side1.get_side_color2()
-        colors_array2 = side2.get_side_color2()
-        color_score = color_similarities2(colors_array1, colors_array2, window=False)
-
-        ##Flavien's method
-        confidence = side_similarities(side1, side2, False)
-
-        #size1 = side1.get_side_size()
-        #size2 = side2.get_side_size()
-        #diff = abs(size1 - size2)
-        #max_size = max(size1, size2)
-        #size_score = max(0, 1 - (diff / max_size))
-
-        if window:
-            im1 = side1.get_piece_image().copy()
-            im2 = side2.get_piece_image().copy()
-            s1_c, s2_c = np.array(side1.get_side_contour()), np.array(side2.get_side_contour())
-
-            # Compute contour centroids
-            center1 = tuple(np.mean(s1_c, axis=0).astype(int))
-            center2 = tuple(np.mean(s2_c, axis=0).astype(int))
-
-            # Draw circles at the center of each contour
-            cv2.circle(im1, center1, radius=10, color=(0, 0, 255), thickness=-1)  # Red dot
-            cv2.circle(im2, center2, radius=10, color=(0, 0, 255), thickness=-1)
-
-            # Resize to same height if needed
-            if im1.shape[0] != im2.shape[0]:
-                height = min(im1.shape[0], im2.shape[0])
-                im1 = cv2.resize(im1, (int(im1.shape[1] * height / im1.shape[0]), height))
-                im2 = cv2.resize(im2, (int(im2.shape[1] * height / im2.shape[0]), height))
-
-            # Concatenate and show
-            combined = np.hstack((im2, im1))
-            cv2.imshow("Compared Sides with Contour Markers", combined)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
-        return color_score + confidence*1.6
 
     window = False
     # Check adjacent pieces and compute the score
@@ -111,14 +113,25 @@ def classify_pieces(pieces):
 
 
 def can_place(piece, grid, row, col, corners, borders, insides, wrongs):
-    corner_positions = {(0, 0), (0, 5), (3, 0), (3, 5)}
-    border_positions = {
-        *[(0, c) for c in range(1, 5)],
-        *[(3, c) for c in range(1, 5)],
-        *[(r, 0) for r in range(1, 3)],
-        *[(r, 5) for r in range(1, 3)]
+    height = len(grid)
+    width = len(grid[0])
+
+    corner_positions = {
+        (0, 0),
+        (0, width - 1),
+        (height - 1, 0),
+        (height - 1, width - 1)
     }
-    inside_positions = {(r, c) for r in range(1, 3) for c in range(1, 5)}
+    border_positions = {
+        *[(0, c) for c in range(1, width - 1)],
+        *[(height - 1, c) for c in range(1, width - 1)],
+        *[(r, 0) for r in range(1, height - 1)],
+        *[(r, width - 1) for r in range(1, height - 1)],
+    }
+
+    inside_positions = {
+        (r, c) for r in range(1, height - 1) for c in range(1, width - 1)
+    }
 
     if (row, col) in corner_positions:
         if piece not in corners and piece not in wrongs:
@@ -159,13 +172,17 @@ def can_place(piece, grid, row, col, corners, borders, insides, wrongs):
 
 
 def solve_puzzle(grid, corners, borders, insides, wrongs):
+    height = len(grid)
+    width = len(grid[0])
+
+
     def build_path():
         frame = [(0, 0)]
-        frame += [(0, col) for col in range(1, 6)]
-        frame += [(row, 5) for row in range(1, 4)]
-        frame += [(3, col) for col in range(4, -1, -1)]
+        frame += [(0, col) for col in range(1, width)]
+        frame += [(row, width-1) for row in range(1, height)]
+        frame += [(height-1, col) for col in range(height, -1, -1)]
         frame += [(row, 0) for row in range(2, 0, -1)]
-        inside = [(r, c) for r in range(1, 3) for c in range(1, 5)]
+        inside = [(r, c) for r in range(1, height-1) for c in range(1, width-1)]
         return frame + inside
 
     full_path = build_path()
@@ -186,14 +203,14 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
     new_corners.remove(first_piece)
 
     # Define the corner, border, and inside positions
-    corner_positions = {(0,0),(0, 5), (3, 0), (3, 5)}
+    corner_positions = {(0,0),(0, width-1), (height-1, 0), (height-1, width-1)}
     border_positions = {
-        *[(0, c) for c in range(1, 5)],
-        *[(3, c) for c in range(1, 5)],
-        *[(r, 0) for r in range(1, 3)],
-        *[(r, 5) for r in range(1, 3)]
+        *[(0, c) for c in range(1, width-1)],
+        *[(height-1, c) for c in range(1, width-1)],
+        *[(r, 0) for r in range(1, height - 1)],
+        *[(r, width-1) for r in range(1, height - 1)],
     }
-    inside_positions = {(r, c) for r in range(1, 3) for c in range(1, 5)}
+    inside_positions = {(r, c) for r in range(1, height-1) for c in range(1, width-1)}
 
     def backtrack(index, corners_left, borders_left, insides_left, wrongs_left):
 
@@ -205,7 +222,10 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
             return True
 
         row, col = full_path[index]
-        is_frame = index < len(full_path) - 8  # 24 - 16 = 8 inside slots
+
+        nb_pieces_inside_th = ((height * width) - (((2 * (height + width)) - 4)))
+
+        is_frame = index < len(full_path) - nb_pieces_inside_th  # 24 - 16 = 8 inside slots
 
         if is_frame:
             if (row, col) in corner_positions:
@@ -268,6 +288,8 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
     success = backtrack(1, new_corners, borders.copy(), insides.copy(), wrongs.copy())
     print("✅ Puzzle solved!" if success else "❌ No solution found.")
     return success
+
+
 
 
 import cv2
@@ -365,6 +387,11 @@ def interactive_view(image):
 # final_img = build_image(solution_indices, pieces, scale_factor=0.5)
 # interactive_view(final_img)
 
+def grid_dimensions_from_piece_count(n):
+    dims = [(h, n // h) for h in range(1, n + 1) if n % h == 0 and h <= n // h]
+
+
+    return (sorted(dims, key=lambda x: abs(x[0] - x[1])))[0]
 
 
 
@@ -374,19 +401,45 @@ def main():
     puzzle.load_puzzle(path)
     pieces = puzzle.get_pieces()
 
+
     corners, borders, insides, wrongs = classify_pieces(pieces)
+
+    # ➕ Afficher les dimensions possibles
+    total_pieces = len(pieces)
+    print(f"\n📦 Nombre total de pièces : {total_pieces}")
+    possible_dims = grid_dimensions_from_piece_count(total_pieces)
+    print("📐 Dimensions possibles (h x w) :")
+    possible_dims_h = possible_dims
+    print("dims = ",possible_dims_h)
+
+
+    #contour_pict = build_image(contour_grid, pieces)
+    #cv2.imshow("Contour Puzzle", contour_pict)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+
+
     print(f"Corners: {len(corners)}")
     print(f"Borders: {len(borders)}")
     print(f"Insides: {len(insides)}")
     print(f"Wrongs: {len(wrongs)}")
 
-    grid = [[None for _ in range(6)] for _ in range(4)]
+    width = possible_dims_h[0]
+    height = possible_dims_h[1]
+
+    grid = [[None for _ in range(width)] for _ in range(height)]
 
     print("\n🎯 Starting full puzzle solving...\n")
     if solve_puzzle(grid, corners, borders, insides, wrongs):
         print("✅ Puzzle solved.")
     else:
-        print("❌ Puzzle could not be solved.")
+        print("❌ Puzzle could not be solved.\n\n\n _______________________________________________________________________________________________________________________\n\n\n")
+
+        grid = [[None for _ in range(height)] for _ in range(width)]
+        if solve_puzzle(grid, corners, borders, insides, wrongs):
+            print("✅ Puzzle solved.")
+        else:
+            print("❌ Puzzle could not be solved.")
 
     print_grid(grid)
 
@@ -394,6 +447,8 @@ def main():
     cv2.imshow("Solved Puzzle", final_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+
 
 
 if __name__ == "__main__":
