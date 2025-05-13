@@ -49,7 +49,7 @@ def calc_score(side1, side2, window=False):
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-    return color_score + confidence * 1.6
+    return color_score*2 + confidence
 
 
 def compute_fit_score(piece, grid, row, col):

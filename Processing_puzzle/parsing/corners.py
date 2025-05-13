@@ -1,31 +1,7 @@
-from itertools import combinations
-
 import cv2 as cv
-import numpy as np
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.spatial import ConvexHull
-from Processing_puzzle.Puzzle import Puzzle as p
-
-from itertools import combinations
-
-'''
-    Function findCorners : Find the 4 corners of a piece [(x,y),(x,y)...]
-    Input: myPuzzle
-'''
-
-
-
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.spatial import ConvexHull
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.spatial import ConvexHull
 
 
 def afficher_contour_polaire(contour_np, percentile_seuil=80, distance_tolerance=0.5):
@@ -139,7 +115,9 @@ def find_corners(myPuzzle, window=False):
         colored_img2 = colored_img.copy()
         colored_img3 = colored_img.copy()
 
+
         contours = piece.get_contours()
+
         contour_np = np.array(contours, dtype=np.int32).reshape((-1, 1, 2))
 
         moments = cv.moments(contour_np)

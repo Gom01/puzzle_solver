@@ -16,7 +16,6 @@ def sides_information(myPuzzle, windows=False):
         # Centre de masse du contour global de la pièce
         piece_contour = np.array(piece.get_contours()).reshape((-1, 1, 2))
         M1 = cv.moments(piece_contour)
-        print(M1)
 
         piece.set_moment(M1)
 
@@ -73,7 +72,7 @@ def sides_information(myPuzzle, windows=False):
 
             #print(cv.contourArea(hull))
 
-            if cv.contourArea(hull) < 5000: #TODO
+            if cv.contourArea(hull) < 2000: #TODO
                 type_cote = "droit"
                 color = (255, 255, 0)  # Jaune
                 side.set_side_info(0)
@@ -109,8 +108,10 @@ def sides_information(myPuzzle, windows=False):
             for i, side in enumerate(sides):
                 x,y = side.get_side_contour()[int(len(side.get_side_contour())/2)]
                 info = side.get_side_info()
+                #print(info)
                 cv2.putText(img, str(info), (x,y), font, 1, (255, 0, 255), 4, cv2.LINE_AA)
 
+            #print(piece.get_sides_info())
             cv2.imshow(f'Piece {i + 1}', img)
             cv2.waitKey(0)
             cv.destroyAllWindows()
