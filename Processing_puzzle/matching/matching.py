@@ -2,6 +2,7 @@ from unittest.util import sorted_list_difference
 import numpy as np
 import cv2
 from Processing_puzzle import Puzzle as p
+from Processing_puzzle.matching.gradient_analysis import compare_side_gradients
 from test_sides import side_similarities
 from side_shape import color_similarities2
 import itertools
@@ -23,6 +24,8 @@ def calc_score(side1, side2, window=False):
     # diff = abs(size1 - size2)
     # max_size = max(size1, size2)
     # size_score = max(0, 1 - (diff / max_size))
+
+    gradient_score = compare_side_gradients(side1, side2, window=False)
 
     if window:
         im1 = side1.get_piece_image().copy()
@@ -49,7 +52,9 @@ def calc_score(side1, side2, window=False):
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-    return color_score*2 + confidence
+
+
+    return  confidence + color_score*2
 
 
 def compute_fit_score(piece, grid, row, col):

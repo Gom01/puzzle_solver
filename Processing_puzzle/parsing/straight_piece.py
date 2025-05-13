@@ -40,6 +40,10 @@ def straighten_piece(puzzle, window=False, angle_threshold=2.5):
         if apply_rotation:
             corrected_img = rotate_image(img, angle, center)
             piece.set_color_image(corrected_img)
+            sides = piece.get_sides()
+            for side in sides:
+                side.set_piece_image(corrected_img)
+
 
         if window:
             before = img.copy()

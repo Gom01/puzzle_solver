@@ -14,6 +14,10 @@ class Side:
     def get_piece_image(self):
         return self.piece_image
 
+    def set_piece_image(self, piece_image):
+        self.piece_image = piece_image
+        return
+
     def set_side_info(self, side_info):
         self.side_info = side_info
         return
