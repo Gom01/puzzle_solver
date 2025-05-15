@@ -54,7 +54,7 @@ def calc_score(side1, side2, window=False):
 
 
 
-    return  confidence + color_score*2
+    return  confidence + color_score*1.6
 
 
 def compute_fit_score(piece, grid, row, col):
@@ -429,8 +429,8 @@ def main():
     print(f"Insides: {len(insides)}")
     print(f"Wrongs: {len(wrongs)}")
 
-    width = possible_dims_h[0]
-    height = possible_dims_h[1]
+    width = possible_dims_h[1]
+    height = possible_dims_h[0]
 
     grid = [[None for _ in range(width)] for _ in range(height)]
 

@@ -11,10 +11,10 @@ from Processing_puzzle.parsing.straight_piece import straighten_piece
 
 def main():
     paths = [
-        '../images/pictures/puzzleA/white.jpg',
-        '../images/pictures/puzzleA/red.jpg',
-        '../images/pictures/puzzleA/green.jpg',
-        '../images/pictures/puzzleA/blue.jpg'
+        '../images/pictures/puzzleB/white.jpg',
+        '../images/pictures/puzzleB/red.jpg',
+        '../images/pictures/puzzleB/green.jpg',
+        '../images/pictures/puzzleB/blue.jpg'
     ]
 
 
@@ -46,7 +46,7 @@ def main():
         for i, side in enumerate(sides):
             contour = side.get_side_contour()
             midpoint = contour[len(contour) // 2]
-            cv2.putText(img, str(f"{i} : {side.get_side_info()}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 3, cv2.LINE_AA)
+            cv2.putText(img, str(f"{side.get_side_info()}"), midpoint, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2, cv2.LINE_AA)
 
         print(piece.get_sides_info())
         window_name = f'Piece {idx+1}'
