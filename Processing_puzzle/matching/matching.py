@@ -54,7 +54,7 @@ def calc_score(side1, side2, window=False):
 
 
 
-    return  confidence + color_score*1.6
+    return  confidence #+ color_score
 
 
 def compute_fit_score(piece, grid, row, col):
@@ -234,9 +234,9 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
 
         if is_frame:
             if (row, col) in corner_positions:
-                candidates = corners_left + wrongs_left
+                candidates = corners_left
             elif (row, col) in border_positions:
-                candidates = borders_left + wrongs_left
+                candidates = borders_left
             else:
                 candidates = wrongs_left
         else:
