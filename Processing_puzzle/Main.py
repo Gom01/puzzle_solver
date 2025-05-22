@@ -12,11 +12,10 @@ from Processing_puzzle.parsing.straight_piece import straighten_piece
 def main():
     paths = [
         '../images/pictures/puzzleB/white.jpg',
+        '../images/pictures/puzzleB/blue.jpg',
         '../images/pictures/puzzleB/red.jpg',
-        '../images/pictures/puzzleB/green.jpg',
-        '../images/pictures/puzzleB/blue.jpg'
+        '../images/pictures/puzzleB/green.jpg'
     ]
-
 
     # Important note for image acquisition
     print("⚠️  Ensure no pieces are touching and use background of different color!")

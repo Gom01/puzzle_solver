@@ -99,8 +99,26 @@ def process_puzzle_images(image_paths, puzzle, window=False):
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         mask_eroded = cv2.erode(mask, kernel, iterations=3)
 
-        # 4. Apply the mask to isolate the piece
+        # 4. Apply the mask to isolate the piece from black background
         isolated = cv2.bitwise_and(piece, piece, mask=mask_eroded)
+
+        # Enhance only non-black pixels
+        alpha = 1.2  # contrast
+        beta = 30  # brightness
+
+        # Create a mask where pixels are not black
+        non_black_mask = np.any(isolated > 0, axis=-1)
+
+        # Extract non-black pixels
+        enhanced = isolated.copy()
+        non_black_pixels = isolated[non_black_mask]
+
+        # Apply contrast + brightness to non-black pixels
+        enhanced_pixels = cv2.convertScaleAbs(non_black_pixels, alpha=alpha, beta=beta)
+        enhanced[non_black_mask] = enhanced_pixels
+
+        # Replace isolated image with enhanced version
+        isolated = enhanced
 
         if window:
             cv2.imshow(f"Piece {i + 1} - Binary Mask", mask)
@@ -115,4 +133,3 @@ def process_puzzle_images(image_paths, puzzle, window=False):
     print("Puzzle parsed with multi-background approach.")
     print(f"Number of pieces found : {len(filtered_contours)}")
     print(f"End of parsing puzzle...")
-
