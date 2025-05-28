@@ -1,57 +1,113 @@
-from math import sqrt
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import linear_sum_assignment
-from skimage.color import rgb2lab  # <--- Add this
 
-def color_similarities2(colors1, colors2, weight=1.0, window=False):
-    length = min(len(colors1), len(colors2))
-    if length == 0:
-        return 0.0
+# ---------- Utility Functions ----------
 
-    # Convert to numpy and normalize to [0, 1]
-    colors1 = np.array(colors1) / 255.0
-    colors2 = np.array(colors2) / 255.0
+def parse_cnt(points, num=100):
+    """Resample contour to have a fixed number of points evenly spaced by arc length."""
+    points = np.array(points, dtype=np.float64)
+    if len(points) < 2:
+        return points
+    distances = np.cumsum(np.r_[0, np.linalg.norm(np.diff(points, axis=0), axis=1)])
+    normalized_distances = distances / distances[-1]
+    target = np.linspace(0, 1, num)
+    x = np.interp(target, normalized_distances, points[:, 0])
+    y = np.interp(target, normalized_distances, points[:, 1])
+    return np.stack([x, y], axis=1)
 
-    # Convert to Lab
-    colors1_lab = rgb2lab(colors1.reshape(1, -1, 3)).reshape(-1, 3)
-    colors2_lab = rgb2lab(colors2.reshape(1, -1, 3)).reshape(-1, 3)
+def align_contour_to_side_axis(contour):
+    """Translate contour to origin and rotate so its direction lies along the X-axis."""
+    contour = np.array(contour, dtype=np.float64)
+    start = contour[0]
+    end = contour[-1]
+    direction = end - start
+    angle = -np.arctan2(direction[1], direction[0])
+    translated = contour - start
+    R = np.array([[np.cos(angle), -np.sin(angle)],
+                  [np.sin(angle),  np.cos(angle)]])
+    aligned = translated @ R.T
+    return aligned
 
-    # Max distance in Lab is not bounded like RGB; use empirical upper bound (~100)
-    max_dist = 100.0
+def normalize_curve(curve):
+    """Translate to origin and normalize to unit length."""
+    centered = curve - np.mean(curve, axis=0)
+    scale = np.linalg.norm(centered)
+    return centered / scale if scale > 0 else centered
 
-    # Build cost matrix of Lab distances
-    cost_matrix = np.zeros((length, length))
-    for i in range(length):
-        for j in range(length):
-            dist = np.linalg.norm(colors1_lab[i] - colors2_lab[j])
-            cost_matrix[i, j] = dist
+def compute_curvature(contour):
+    """Return the curvature along a contour (approximated)."""
+    dx = np.gradient(contour[:, 0])
+    dy = np.gradient(contour[:, 1])
+    ddx = np.gradient(dx)
+    ddy = np.gradient(dy)
+    curvature = np.abs(dx * ddy - dy * ddx) / (dx**2 + dy**2 + 1e-8)**1.5
+    return curvature
 
-    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+def soft_hausdorff_distance(A, B):
+    """Compute a bidirectional average min distance (soft Hausdorff)."""
+    dists_a_to_b = np.min(np.linalg.norm(A[:, None] - B[None, :], axis=2), axis=1)
+    dists_b_to_a = np.min(np.linalg.norm(B[:, None] - A[None, :], axis=2), axis=1)
+    return np.mean(np.concatenate([dists_a_to_b, dists_b_to_a]))
 
-    similarities = []
-    for i, j in zip(row_ind, col_ind):
-        dist = cost_matrix[i, j]
-        sim = 1 - (dist / max_dist)
-        similarities.append(sim)
+def best_cyclic_shift_alignment(curve1, curve2):
+    """Try all circular shifts of curve2 to best match curve1 using soft Hausdorff."""
+    best_score = float("inf")
+    best_curve2 = curve2
+    for shift in range(len(curve2)):
+        shifted = np.roll(curve2, shift, axis=0)
+        score = soft_hausdorff_distance(curve1, shifted)
+        if score < best_score:
+            best_score = score
+            best_curve2 = shifted
+    return best_score, best_curve2
 
-    normalized_score = (sum(similarities) / length) * weight
+def plot_two_contours_with_score(curve1, curve2, label1="Side 1", label2="Side 2",
+                                  color1="blue", color2="red", score=None):
+    x1, y1 = zip(*curve1)
+    x2, y2 = zip(*curve2)
+    plt.figure(figsize=(8, 6))
+    plt.plot(x1, y1, marker='o', linestyle='-', color=color1, label=label1)
+    plt.plot(x2, y2, marker='o', linestyle='-', color=color2, label=label2)
+    plt.title("Aligned Contours")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.legend()
+    plt.grid(True)
+    plt.axis("equal")
+    if score is not None:
+        plt.text(0.95, 0.95, f'Score: {score:.4f}', transform=plt.gca().transAxes,
+                 fontsize=12, ha='right', va='top', color='black',
+                 bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+    plt.show()
 
+# ---------- Main Function ----------
+
+def side_similarities(side1, side2, window=False):
+    """
+    Compare two sides by aligning to the same axis, flipping/reversing, and scoring.
+    Now robust to zoomed pieces.
+    """
+    # Parse and normalize both sides
+    parsed_1 = normalize_curve(align_contour_to_side_axis(parse_cnt(side1.get_side_contour(), num=100)))
+    parsed_2_raw = parse_cnt(side2.get_side_contour(), num=100)
+
+    best_score = float("inf")
+    best_curve2 = None
+
+    # Try all flips/reversals/negations
+    for variant in [parsed_2_raw, parsed_2_raw[::-1], -parsed_2_raw, -parsed_2_raw[::-1]]:
+        aligned_variant = normalize_curve(align_contour_to_side_axis(variant))
+        score, shifted = best_cyclic_shift_alignment(parsed_1, aligned_variant)
+        if score < best_score:
+            best_score = score
+            best_curve2 = shifted
+
+    alpha = 10  # You can tweak this (e.g., 3.0, 5.0, 7.0)
+    confidence = np.exp(-alpha * best_score)
+
+    # Optional visualization
     if window:
-        fig, ax = plt.subplots(figsize=(6, length * 0.5))
-        for idx, (i, j) in enumerate(zip(row_ind, col_ind)):
-            c1 = colors1[i]
-            c2 = colors2[j]
-            ax.barh(idx, 1, color=c1, height=0.4, label="Color 1" if idx == 0 else "")
-            ax.barh(idx + 0.4, 1, color=c2, height=0.4, label="Color 2" if idx == 0 else "")
-        ax.set_xlim(0, 1)
-        ax.set_ylim(-0.5, length + 0.5)
-        ax.set_yticks([i + 0.2 for i in range(length)])
-        ax.set_yticklabels([f"Pair {i + 1}" for i in range(length)])
-        ax.set_xticks([])
-        ax.legend(loc="upper right")
-        ax.set_title(f"Lab Match Score (Best Alignment): {normalized_score:.4f}")
-        plt.tight_layout()
-        plt.show()
+        plot_two_contours_with_score(parsed_1, best_curve2, score=confidence)
 
-    return normalized_score
+    return confidence
+

@@ -1,31 +1,92 @@
-from unittest.util import sorted_list_difference
-import numpy as np
-import cv2
 from Processing_puzzle import Puzzle as p
-from Processing_puzzle.matching.gradient_analysis import compare_side_gradients
-from test_sides import side_similarities
-from side_shape import color_similarities2
-import itertools
+from Processing_puzzle.matching.side_curve import compare_curvature
+from Processing_puzzle.matching.side_size import size_similarities
+from side_shape import side_similarities
+from side_color import color_similarities2
+from time import sleep
+import matplotlib.pyplot as plt
 
+
+def plot_candidate_scores(scored_candidates, row, col, index):
+    names = [f"P{piece.get_index()}" for piece, score, _ in scored_candidates]
+    scores = [score if score != float('-inf') else 0 for _, score, _ in scored_candidates]
+
+    plt.figure(figsize=(12, 6))
+    bars = plt.bar(names, scores, color='skyblue')
+    plt.axhline(y=max(scores), color='r', linestyle='--', label='Best Score')
+    plt.xlabel('Piece ID')
+    plt.ylabel('Fit Score')
+    plt.title(f'Fit Scores for Candidates at Position ({row}, {col}) - Step {index}')
+    plt.xticks(rotation=45)
+    plt.ylim(0, 1.05)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+def visualize_grid(grid, scale=0.5):
+    def crop_piece(img):
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
+        coords = cv2.findNonZero(thresh)
+        if coords is None:
+            return img
+        x, y, w, h = cv2.boundingRect(coords)
+        return img[y:y+h, x:x+w]
+
+    rows_images, max_width = [], 0
+    for row in grid:
+        cropped_imgs, heights = [], []
+        for piece in row:
+            if piece is not None:
+                img = piece.rotate_image_by_rotation()
+                img = crop_piece(img)
+                img = cv2.resize(img, (0, 0), fx=scale, fy=scale)
+                cropped_imgs.append(img)
+                heights.append(img.shape[0])
+            else:
+                cropped_imgs.append(None)
+                heights.append(0)
+
+        row_height = max(heights)
+        row_pieces = []
+        for img in cropped_imgs:
+            if img is not None:
+                h, w = img.shape[:2]
+                pad_top = (row_height - h) // 2
+                pad_bottom = row_height - h - pad_top
+                img_padded = cv2.copyMakeBorder(img, pad_top, pad_bottom, 0, 0, cv2.BORDER_CONSTANT, value=(255,255,255))
+                row_pieces.append(img_padded)
+            else:
+                row_pieces.append(np.ones((row_height, 1, 3), dtype=np.uint8) * 255)
+
+        row_img = np.hstack(row_pieces)
+        rows_images.append(row_img)
+        max_width = max(max_width, row_img.shape[1])
+
+    full_height = sum(img.shape[0] for img in rows_images)
+    final_img = np.ones((full_height, max_width, 3), dtype=np.uint8) * 255
+    y_offset = 0
+    for row_img in rows_images:
+        final_img[y_offset:y_offset + row_img.shape[0], :row_img.shape[1]] = row_img
+        y_offset += row_img.shape[0]
+
+    cv2.imshow("Live Puzzle Assembly", final_img)
+    cv2.waitKey(1)
 
 def calc_score(side1, side2, window=False):
     s1, s2 = side1.get_side_info(), side2.get_side_info()
 
-    ##Florian's method
+    def is_ambiguous_side(side):
+        return side.get_side_info() == 2
+
+    #Measuring score
     colors_array1 = side1.get_side_color2()
     colors_array2 = side2.get_side_color2()
     color_score = color_similarities2(colors_array1, colors_array2, window=False)
-
-    ##Flavien's method
     confidence = side_similarities(side1, side2, False)
-
-    # size1 = side1.get_side_size()
-    # size2 = side2.get_side_size()
-    # diff = abs(size1 - size2)
-    # max_size = max(size1, size2)
-    # size_score = max(0, 1 - (diff / max_size))
-
-    gradient_score = compare_side_gradients(side1, side2, window=False)
+    size_score = size_similarities(side1, side2, window=False)
+    curv_score = compare_curvature(side1, side2, window=False)
 
     if window:
         im1 = side1.get_piece_image().copy()
@@ -53,32 +114,31 @@ def calc_score(side1, side2, window=False):
         cv2.destroyAllWindows()
 
 
+    ##Color score is the best to find correct piece 0.8
+    ##Then size is pretty accurate 0.2
+    ##Works aoky confidence
+    base_score =  curv_score*0 + color_score*0.7 + confidence*0.1 + size_score*0.2
 
-    return  confidence #+ color_score
+    if is_ambiguous_side(side1) or is_ambiguous_side(side2):
+        return base_score * 0.2  # minimal influence
+
+    return base_score
+
+
 
 
 def compute_fit_score(piece, grid, row, col):
     score = 0
     sides = piece.get_sides()
+    neighbor_coords = [(row-1, col, 3, 1), (row+1, col, 1, 3), (row, col-1, 0, 2), (row, col+1, 2, 0)]
 
-
-    window = False
-    # Check adjacent pieces and compute the score
-    if row > 0 and grid[row - 1][col] is not None:
-        score += calc_score(sides[3], grid[row - 1][col].get_sides()[1], window)
-
-    if row < len(grid) - 1 and grid[row + 1][col] is not None:
-        score += calc_score(sides[1], grid[row + 1][col].get_sides()[3],window)
-
-
-    if col > 0 and grid[row][col - 1] is not None:
-        score += calc_score(sides[0], grid[row][col - 1].get_sides()[2],window)
-
-    if col < len(grid[0]) - 1 and grid[row][col + 1] is not None:
-        score += calc_score(sides[2], grid[row][col + 1].get_sides()[0],window)
-
-
-    print(f"{piece.index} : final score = {score}")
+    for r, c, i, j in neighbor_coords:
+        if 0 <= r < len(grid) and 0 <= c < len(grid[0]) and grid[r][c] is not None:
+            neighbor = grid[r][c]
+            # Skip influence if neighbor's side is ambiguous
+            if neighbor.get_sides()[j].get_side_info() == 2:
+                continue
+            score += calc_score(sides[i], neighbor.get_sides()[j])
 
     return score
 
@@ -262,6 +322,7 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
 
         # Sort pieces by fit score (higher is better)
         scored_candidates.sort(key=lambda x: x[1], reverse=True)
+        plot_candidate_scores(scored_candidates, row, col, index)
         print(scored_candidates)
 
 
@@ -273,6 +334,7 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
             if can_place(piece, grid, row, col, corners_left, borders_left, insides_left, wrongs_left):
                 print(f"✅ Trying {piece} at ({row}, {col}) with rotation {rotation} and score {score:.2f}")
                 grid[row][col] = piece
+                visualize_grid(grid)
 
                 # Track and remove the placed piece from the lists
                 lists = {'c': corners_left.copy(), 'b': borders_left.copy(), 'i': insides_left.copy(), 'w': wrongs_left.copy()}
