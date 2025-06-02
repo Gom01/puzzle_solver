@@ -130,6 +130,5 @@ def process_puzzle_images(image_paths, puzzle, window=False):
         puzzle.add_piece(Piece(mask_eroded, isolated, convert_contour(shifted_contour), i))
 
     puzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
-    print("Puzzle parsed with multi-background approach.")
-    print(f"Number of pieces found : {len(filtered_contours)}")
-    print(f"End of parsing puzzle...")
+    print("🧩 Puzzle parsed with multi-background approach.")
+    print(f"🧩 Number of pieces found : {len(filtered_contours)}")

@@ -8,6 +8,7 @@ class Piece:
         :param contours: Les contours filtrés de la pièce.
         """
         self.image_black_white = image_black_white
+        self.image_straigthen = None
         self.image_color = image_color
         self.contours = contours
         self.index = index
@@ -32,6 +33,14 @@ class Piece:
         self.sides = side1, side2, side3, side4
         return
 
+    def get_strait_image(self):
+        return self.image_straigthen
+
+    def set_strait_image(self, image):
+        self.image_straigthen = image
+        return
+
+
     def get_sides(self):
         return self.sides # [left, bottom, right, top]
 
@@ -46,6 +55,7 @@ class Piece:
     def reset_piece(self, piece):
         self.image_black_white = piece.get_black_white_image()
         self.image_color = piece.get_color_image()
+        self.image_straigthen = piece.get_strait_image()
         self.contours = piece.get_contours()
         self.index = piece.get_index()
         self.x = piece.get_position()[0]

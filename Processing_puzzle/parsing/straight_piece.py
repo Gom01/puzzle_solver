@@ -8,6 +8,10 @@ def straighten_piece(puzzle, window=False, angle_threshold=2.5):
         img = piece.get_color_image()
         corners = piece.get_corners()  # Ordered: 0:TL, 1:BL, 2:BR, 3:TR
 
+        if corners[0] == [2, 2]:
+            print(f"⚠️ Skipping piece {piece.index}")
+            continue
+
         # Compute center from moments
         M = piece.get_moment()
         if M['m00'] == 0:
@@ -33,16 +37,16 @@ def straighten_piece(puzzle, window=False, angle_threshold=2.5):
             return int(x_new + center[0]), int(y_new + center[1])
 
         # Compute the angle to rotate so that 0-3 becomes horizontal
-        angle = angle_between(corners[0], corners[3])
+        angle = angle_between(corners[0], corners[1])
         apply_rotation = abs(angle) > angle_threshold
         corrected_img = img.copy()
 
         if apply_rotation:
             corrected_img = rotate_image(img, angle, center)
-            piece.set_color_image(corrected_img)
+            piece.set_strait_image(corrected_img)
             sides = piece.get_sides()
             for side in sides:
-                side.set_piece_image(corrected_img)
+                side.set_strait_image(corrected_img)
 
 
         if window:

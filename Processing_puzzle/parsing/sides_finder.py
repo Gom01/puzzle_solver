@@ -1,80 +1,84 @@
 import cv2 as cv
+import numpy as np
+
 from Processing_puzzle.Sides import Side
 
 def find_sides(myPuzzle, window=False):
-
     pieces = myPuzzle.get_pieces()
+
     for i, piece in enumerate(pieces):
         corners = piece.get_corners()
 
-        if corners[0] != [-1, -1]:
+        if corners[0] != [2, 2]:
+            print(f"🔄 Processing piece {i + 1}/{len(pieces)}", end='\r')
 
             side1, side2, side3, side4 = [], [], [], []
-
-            corners = corners[:]
-
             contour = piece.get_contours()
 
-            # Trouver le point de départ qui correspond au premier coin
-            start_index = contour.index(corners[0])
-            current_side = side1
-            visited_corners = [corners[0]]
+            def find_nearest_index(contour, target_point):
+                return min(range(len(contour)),
+                           key=lambda i: np.linalg.norm(np.array(contour[i]) - np.array(target_point)))
 
-            # Initialisation de la première variable point
-            point = contour[start_index]
-            point_origin = point
+            start_index = find_nearest_index(contour, corners[0])
+
+            current_side = side1
+            visited_corners = {tuple(corners[0])}
+            point_origin = contour[start_index]
             index = start_index
 
-            # On commence à remplir les côtés en suivant le contour
-            while point != point_origin or len(visited_corners) < 4:
+            while True:
                 point = contour[index]
+                point_tuple = tuple(point)
 
-                 # Vérifier si le point est un coin
-                if point in corners and point not in visited_corners:
-                    visited_corners.append(point)
+                for corner in corners:
+                    if np.linalg.norm(np.array(point) - np.array(corner)) < 2 and tuple(corner) not in visited_corners:
+                        visited_corners.add(tuple(corner))
 
-                    # Changer de côté lorsque nous rencontrons un nouveau coin
-                    if len(visited_corners) == 2:
-                        current_side = side2
-                    elif len(visited_corners) == 3:
-                        current_side = side3
-                    elif len(visited_corners) == 4:
-                        current_side = side4
+                        if len(visited_corners) == 2:
+                            current_side = side2
+                        elif len(visited_corners) == 3:
+                            current_side = side3
+                        elif len(visited_corners) == 4:
+                            current_side = side4
+                        break
 
-                # Ajouter le point au côté actuel
                 current_side.append(point)
-
-                # Avancer dans le contour
                 index = (index + 1) % len(contour)
 
+                if len(visited_corners) == 4 and np.linalg.norm(np.array(point) - np.array(corners[0])) < 2:
+                    break
+
             if window:
-                img = piece.get_color_image()
+                img = piece.get_color_image().copy()
                 corner1, corner2, corner3, corner4 = corners
                 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
 
-                # Dessiner chaque côté
                 for i, side in enumerate([side1, side2, side3, side4]):
-                    color = colors[i]
                     for j in range(len(side) - 1):
-                        cv.line(img, side[j], side[j + 1], color, 4)
+                        cv.line(img, side[j], side[j + 1], colors[i], 4)
 
-                # Dessiner chaque coin (cercles)
-                for i, corner in enumerate([corner1, corner2, corner3, corner4]):
-                    color = (255, 90, 0)  # Jaune
-                    # Dessiner un cercle à chaque coin
-                    cv.circle(img, corner, radius=5, color=color, thickness=-1)
+
+                for corner in [corner1, corner2, corner3, corner4]:
+                    cv.circle(img, corner, radius=5, color=(255, 90, 0), thickness=-1)
 
                 cv.imshow("4 Sides", img)
                 cv.waitKey(0)
                 cv.destroyAllWindows()
 
-            piece.set_sides(Side(side4, piece.get_color_image()),Side(side3, piece.get_color_image()), Side(side2, piece.get_color_image()), Side(side1, piece.get_color_image()))
-            #top, right, bottom, left
+            # Set sides in order: top, right, bottom, left
+            piece.set_sides(
+                Side(side4, piece.get_color_image()),
+                Side(side3, piece.get_color_image()),
+                Side(side2, piece.get_color_image()),
+                Side(side1, piece.get_color_image())
+            )
         else:
-            print("No sides found for this piece ")
-            continue
-
+            piece.set_sides(
+                Side([[2,2]], piece.get_color_image()),
+                Side([[2,2]], piece.get_color_image()),
+                Side([[2,2]], piece.get_color_image()),
+                Side([[2,2]], piece.get_color_image())
+            )
+            print(f"❌ No corners found for piece {i}, skipping.")
 
     myPuzzle.save_puzzle('../Processing_puzzle/res/puzzle.pickle')
-    print("Sides found...")
-    return

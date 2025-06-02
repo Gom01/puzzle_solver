@@ -9,6 +9,7 @@ class Side:
         self.side_score = None
         self.side_color_per_point = None  # <-- nouvelle variable pour color2
         self.piece_image = piece_image
+        self.image_straigthen = None
 
 
     def get_piece_image(self):
@@ -35,6 +36,13 @@ class Side:
 
     def set_side_contour(self, side_contour):
         self.side_contour = side_contour
+        return
+
+    def get_strait_image(self):
+        return self.image_straigthen
+
+    def set_strait_image(self, image):
+        self.image_straigthen = image
         return
 
     def get_side_contour(self):

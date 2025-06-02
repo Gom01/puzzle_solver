@@ -10,6 +10,7 @@ def find_color(puzzle, window=True, k_dominant_colors=3):
     import numpy as np
     import cv2
 
+
     pieces = puzzle.get_pieces()
 
     def get_dominant_colors(pixels, k):
@@ -85,10 +86,13 @@ def find_color(puzzle, window=True, k_dominant_colors=3):
         return result
 
     for idx, piece in enumerate(pieces):
+        if piece.get_corners()[0] == [2,2]:
+            continue
+
         img = piece.get_color_image().copy()
         for side_idx, side in enumerate(piece.get_sides()):
             side_contour = side.get_side_contour()
-            sampled_points, step = sample_n_points_along_contour(side_contour, n_points=14)
+            sampled_points, step = sample_n_points_along_contour(side_contour, n_points=10)
             radius = int(step / 2)
             dominant_colors_per_side = []
 

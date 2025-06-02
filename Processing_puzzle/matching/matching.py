@@ -13,12 +13,18 @@ def plot_candidate_scores(scored_candidates, row, col, index):
 
     plt.figure(figsize=(12, 6))
     bars = plt.bar(names, scores, color='skyblue')
-    plt.axhline(y=max(scores), color='r', linestyle='--', label='Best Score')
+
+    max_score = max(scores)
+    plt.axhline(y=max_score, color='r', linestyle='--', label='Best Score')
+
     plt.xlabel('Piece ID')
     plt.ylabel('Fit Score')
     plt.title(f'Fit Scores for Candidates at Position ({row}, {col}) - Step {index}')
     plt.xticks(rotation=45)
-    plt.ylim(0, 1.05)
+
+    # Allow autoscaling of Y-axis (remove cap at 1.05)
+    plt.ylim(0, max_score * 1.1 if max_score > 0 else 1)
+
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
@@ -26,6 +32,9 @@ def plot_candidate_scores(scored_candidates, row, col, index):
 
 def visualize_grid(grid, scale=0.5):
     def crop_piece(img):
+        if img is None:
+            print("⚠️ Warning: Attempted to crop a None image.")
+            return np.ones((50, 50, 3), dtype=np.uint8) * 255  # fallback blank image
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
         coords = cv2.findNonZero(thresh)
@@ -40,12 +49,15 @@ def visualize_grid(grid, scale=0.5):
         for piece in row:
             if piece is not None:
                 img = piece.rotate_image_by_rotation()
+                if img is None:
+                    print(f"❌ Piece {piece.get_index()} has no color image.")
+                    continue
                 img = crop_piece(img)
                 img = cv2.resize(img, (0, 0), fx=scale, fy=scale)
 
                 # ✏️ Add piece index label
                 piece_id = f"{piece.get_index()}"
-                cv2.putText(img, piece_id, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.putText(img, piece_id, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2, cv2.LINE_AA)
 
                 cropped_imgs.append(img)
                 heights.append(img.shape[0])
@@ -90,8 +102,6 @@ def calc_score(side1, side2, window=False):
     colors_array2 = side2.get_side_color2()
     color_score = color_similarities2(colors_array1, colors_array2, window=False)
     confidence = side_similarities(side1, side2, False)
-    size_score = size_similarities(side1, side2, window=False)
-    curv_score = compare_curvature(side1, side2, window=False)
 
     if window:
         im1 = side1.get_piece_image().copy()
@@ -119,10 +129,17 @@ def calc_score(side1, side2, window=False):
         cv2.destroyAllWindows()
 
 
-    ##Color score is the best to find correct piece 0.8
-    ##Then size is pretty accurate 0.2
-    ##Works aoky confidence
-    base_score =  curv_score*0 + color_score*0.7 + confidence*0.1 + size_score*0.2
+    ##Red and green puzzle (darker color)
+    #puzzleB
+    #base_score =   color_score*0.7 + confidence*0.6
+
+    #puzzleA
+    #Very different colors
+    #base_score =  color_score * 0.7 + confidence * 0.7
+
+    #puzzleC
+    base_score = color_score * 0.7 + confidence * 0.6
+
 
     if is_ambiguous_side(side1) or is_ambiguous_side(side2):
         return base_score * 0.2  # minimal influence
@@ -166,6 +183,8 @@ def print_grid(grid):
 def classify_pieces(pieces):
     corners, borders, insides, wrongs = [], [], [], []
     for piece in pieces:
+        if piece.get_strait_image() is not None:
+            piece.set_color_image(piece.get_strait_image())
         sides = piece.get_sides()
         if piece.is_bad:
             for s in sides:
@@ -312,7 +331,7 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
             if (row, col) in corner_positions:
                 candidates = corners_left
             elif (row, col) in border_positions:
-                candidates = borders_left
+                candidates = borders_left + wrongs_left
             else:
                 candidates = wrongs_left
         else:
@@ -338,7 +357,7 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
 
         # Sort pieces by fit score (higher is better)
         scored_candidates.sort(key=lambda x: x[1], reverse=True)
-        plot_candidate_scores(scored_candidates, row, col, index)
+        #plot_candidate_scores(scored_candidates, row, col, index)
         print(f"\n📋 Candidates for position ({row}, {col}):")
         for piece, score, rotation in scored_candidates:
             print(f"  - Piece {piece.get_index()} | Score: {score:.3f} | Rotation: {rotation * 90}°")
@@ -382,6 +401,9 @@ import numpy as np
 
 def build_image(solution_indices, pieces, scale_factor=0.5):
     def crop_piece(img):
+        if img is None:
+            print("⚠️ Warning: Attempted to crop a None image.")
+            return np.ones((50, 50, 3), dtype=np.uint8) * 255  # fallback blank image
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         _, thresh = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
         coords = cv2.findNonZero(thresh)
@@ -400,7 +422,7 @@ def build_image(solution_indices, pieces, scale_factor=0.5):
                 img = cv2.resize(img, (0, 0), fx=scale_factor, fy=scale_factor)
 
                 piece_id = f"{piece.get_index()}"
-                cv2.putText(img, piece_id, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                #cv2.putText(img, piece_id, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
 
 
                 cropped_imgs.append(img)
@@ -440,8 +462,22 @@ def build_image(solution_indices, pieces, scale_factor=0.5):
         h, w = final_img.shape[:2]
         center = (w // 2, h // 2)
         rot_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-        rotated = cv2.warpAffine(final_img, rot_matrix, (w, h), flags=cv2.INTER_LINEAR, borderValue=(255, 255, 255))
+
+        # Compute new bounding dimensions after rotation
+        cos = np.abs(rot_matrix[0, 0])
+        sin = np.abs(rot_matrix[0, 1])
+        new_w = int((h * sin) + (w * cos))
+        new_h = int((h * cos) + (w * sin))
+
+        # Adjust the rotation matrix to move the image center to the new canvas center
+        rot_matrix[0, 2] += (new_w / 2) - center[0]
+        rot_matrix[1, 2] += (new_h / 2) - center[1]
+
+        # Apply the rotation with new dimensions
+        rotated = cv2.warpAffine(final_img, rot_matrix, (new_w, new_h), flags=cv2.INTER_LINEAR, borderValue=(255, 255, 255))
+
         cv2.imshow(window_name, rotated)
+
         key = cv2.waitKey(0) & 0xFF
         if key == 27:  # ESC
             break
@@ -481,8 +517,9 @@ def main():
     puzzle.load_puzzle(path)
     pieces = puzzle.get_pieces()
 
+
     # 👇 Set grid size manually here (rows × columns)
-    rows, cols = 6, 4  # 🔁 Change to (6, 4) if needed
+    rows, cols =  6, 4  # 🔁 Change to (6, 4) if needed
 
     print(f"\n📦 Nombre total de pièces : {len(pieces)}")
     print(f"📐 Grid size manually set to: {rows} rows × {cols} columns")
