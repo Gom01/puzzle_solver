@@ -42,6 +42,11 @@ def visualize_grid(grid, scale=0.5):
                 img = piece.rotate_image_by_rotation()
                 img = crop_piece(img)
                 img = cv2.resize(img, (0, 0), fx=scale, fy=scale)
+
+                # ✏️ Add piece index label
+                piece_id = f"{piece.get_index()}"
+                cv2.putText(img, piece_id, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+
                 cropped_imgs.append(img)
                 heights.append(img.shape[0])
             else:
@@ -208,11 +213,14 @@ def can_place(piece, grid, row, col, corners, borders, insides, wrongs):
         if piece not in insides and piece not in wrongs:
             return False
 
+    max_row = len(grid) - 1
+    max_col = len(grid[0]) - 1
+
     s1, s2, s3, s4 = piece.get_sides_info()  # [left, bottom, right, top]
     if row == 0 and s4 not in (0, 2): return False  # top edge
-    if row == 3 and s2 not in (0, 2): return False  # bottom edge
+    if row == max_row and s2 not in (0, 2): return False  # bottom edge
     if col == 0 and s1 not in (0, 2): return False  # left edge
-    if col == 5 and s3 not in (0, 2): return False  # right edge
+    if col == max_col and s3 not in (0, 2): return False  # right edge
 
     sides = piece.get_sides()
 
@@ -240,14 +248,22 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
     height = len(grid)
     width = len(grid[0])
 
-
     def build_path():
-        frame = [(0, 0)]
-        frame += [(0, col) for col in range(1, width)]
-        frame += [(row, width-1) for row in range(1, height)]
-        frame += [(height-1, col) for col in range(height, -1, -1)]
-        frame += [(row, 0) for row in range(2, 0, -1)]
-        inside = [(r, c) for r in range(1, height-1) for c in range(1, width-1)]
+        frame = []
+        # ⬅️ Top row (left to right)
+        for col in range(width):
+            frame.append((0, col))
+        # ⬇️ Right column (top to bottom, skip top corner)
+        for row in range(1, height):
+            frame.append((row, width - 1))
+        # ➡️ Bottom row (right to left, skip bottom-right)
+        for col in range(width - 2, -1, -1):
+            frame.append((height - 1, col))
+        # ⬆️ Left column (bottom to top, skip bottom-left and top-left)
+        for row in range(height - 2, 0, -1):
+            frame.append((row, 0))
+        # ⬛ Inner grid (row-major order)
+        inside = [(r, c) for r in range(1, height - 1) for c in range(1, width - 1)]
         return frame + inside
 
     full_path = build_path()
@@ -323,7 +339,9 @@ def solve_puzzle(grid, corners, borders, insides, wrongs):
         # Sort pieces by fit score (higher is better)
         scored_candidates.sort(key=lambda x: x[1], reverse=True)
         plot_candidate_scores(scored_candidates, row, col, index)
-        print(scored_candidates)
+        print(f"\n📋 Candidates for position ({row}, {col}):")
+        for piece, score, rotation in scored_candidates:
+            print(f"  - Piece {piece.get_index()} | Score: {score:.3f} | Rotation: {rotation * 90}°")
 
 
         for piece, score, rotation in scored_candidates:
@@ -380,6 +398,11 @@ def build_image(solution_indices, pieces, scale_factor=0.5):
                 img = piece.rotate_image_by_rotation()
                 img = crop_piece(img)
                 img = cv2.resize(img, (0, 0), fx=scale_factor, fy=scale_factor)
+
+                piece_id = f"{piece.get_index()}"
+                cv2.putText(img, piece_id, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+
+
                 cropped_imgs.append(img)
                 heights.append(img.shape[0])
             else:
@@ -450,73 +473,46 @@ def interactive_view(image):
 
     cv2.destroyAllWindows()
 
-# Example usage:
-# final_img = build_image(solution_indices, pieces, scale_factor=0.5)
-# interactive_view(final_img)
-
-def grid_dimensions_from_piece_count(n):
-    dims = [(h, n // h) for h in range(1, n + 1) if n % h == 0 and h <= n // h]
-
-
-    return (sorted(dims, key=lambda x: abs(x[0] - x[1])))[0]
-
-
 
 def main():
+    # 🧩 Load puzzle
     path = "../res/puzzle.pickle"
     puzzle = p.Puzzle()
     puzzle.load_puzzle(path)
     pieces = puzzle.get_pieces()
 
+    # 👇 Set grid size manually here (rows × columns)
+    rows, cols = 6, 4  # 🔁 Change to (6, 4) if needed
 
+    print(f"\n📦 Nombre total de pièces : {len(pieces)}")
+    print(f"📐 Grid size manually set to: {rows} rows × {cols} columns")
+
+    # 🧠 Classify pieces
     corners, borders, insides, wrongs = classify_pieces(pieces)
+    print(f"Corners: {len(corners)} | Borders: {len(borders)} | Insides: {len(insides)} | Wrongs: {len(wrongs)}")
 
-    # ➕ Afficher les dimensions possibles
-    total_pieces = len(pieces)
-    print(f"\n📦 Nombre total de pièces : {total_pieces}")
-    possible_dims = grid_dimensions_from_piece_count(total_pieces)
-    print("📐 Dimensions possibles (h x w) :")
-    possible_dims_h = possible_dims
-    print("dims = ",possible_dims_h)
-
-
-    #contour_pict = build_image(contour_grid, pieces)
-    #cv2.imshow("Contour Puzzle", contour_pict)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-
-
-    print(f"Corners: {len(corners)}")
-    print(f"Borders: {len(borders)}")
-    print(f"Insides: {len(insides)}")
-    print(f"Wrongs: {len(wrongs)}")
-
-    width = possible_dims_h[1]
-    height = possible_dims_h[0]
-
-    grid = [[None for _ in range(width)] for _ in range(height)]
+    # 🧩 Build grid
+    grid = [[None for _ in range(cols)] for _ in range(rows)]
 
     print("\n🎯 Starting full puzzle solving...\n")
     if solve_puzzle(grid, corners, borders, insides, wrongs):
         print("✅ Puzzle solved.")
     else:
-        print("❌ Puzzle could not be solved.\n\n\n _______________________________________________________________________________________________________________________\n\n\n")
-
-        grid = [[None for _ in range(height)] for _ in range(width)]
+        print("❌ Puzzle could not be solved.\nTrying rotated dimensions...\n")
+        # Try alternative dimensions (flip)
+        grid = [[None for _ in range(rows)] for _ in range(cols)]
         if solve_puzzle(grid, corners, borders, insides, wrongs):
-            print("✅ Puzzle solved.")
+            print("✅ Puzzle solved with fallback grid.")
         else:
-            print("❌ Puzzle could not be solved.")
+            print("❌ Puzzle could not be solved with fallback either.")
 
     print_grid(grid)
 
+    # 🖼️ Build final image with piece labels
     final_image = build_image(grid, pieces)
     cv2.imshow("Solved Puzzle", final_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
-
 
 if __name__ == "__main__":
     main()
