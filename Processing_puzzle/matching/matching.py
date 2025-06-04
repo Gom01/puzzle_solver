@@ -1,6 +1,6 @@
 from Processing_puzzle import Puzzle as p
 from Processing_puzzle.matching.side_curve import compare_curvature
-from Processing_puzzle.matching.side_size import size_similarities
+#from Processing_puzzle.matching.side_size import size_similarities
 from side_shape import side_similarities
 from side_color import color_similarities2
 from time import sleep
@@ -509,6 +509,11 @@ def interactive_view(image):
 
     cv2.destroyAllWindows()
 
+def grid_dimensions_from_piece_count(n):
+    dims = [(h, n // h) for h in range(1, n + 1) if n % h == 0 and h <= n // h]
+
+
+    return (sorted(dims, key=lambda x: abs(x[0] - x[1])))[0]
 
 def main():
     # 🧩 Load puzzle
@@ -519,7 +524,16 @@ def main():
 
 
     # 👇 Set grid size manually here (rows × columns)
-    rows, cols =  6, 4  # 🔁 Change to (6, 4) if needed
+    #rows, cols =  6, 4  # 🔁 Change to (6, 4) if needed
+    # ➕ Afficher les dimensions possibles
+    total_pieces = len(pieces)
+    print(f"\n📦 Nombre total de pièces : {total_pieces}")
+    possible_dims = grid_dimensions_from_piece_count(total_pieces)
+    print("📐 Dimensions possibles (h x w) :")
+    possible_dims_h = possible_dims
+    print("dims = ", possible_dims_h)
+    rows = possible_dims_h[1]
+    cols = possible_dims_h[0]
 
     print(f"\n📦 Nombre total de pièces : {len(pieces)}")
     print(f"📐 Grid size manually set to: {rows} rows × {cols} columns")

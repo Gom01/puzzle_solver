@@ -21,6 +21,7 @@ class Piece:
 
 
         self.sides = []
+        self.wrong_sides = 0
 
         self.moment = None
 
@@ -127,6 +128,10 @@ class Piece:
     def get_moment(self):
         return self.moment
 
+    def set_wrong_sides(self):
+        self.wrong_sides += 1
+        if (self.wrong_sides > 2):
+            self.is_bad = True
 
     def __str__(self):
         s1,s2,s3,s4 = self.get_sides_info() # [left, top, right, down]

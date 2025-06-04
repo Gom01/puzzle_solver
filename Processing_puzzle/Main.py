@@ -13,11 +13,13 @@ def midpoint(p1, p2):
     return ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
 
 def main():
+
+    letter = "B"
     paths = [
-        '../images/pictures/puzzleB/white.jpg',
-        '../images/pictures/puzzleB/blue.jpg',
-        '../images/pictures/puzzleB/red.jpg',
-        '../images/pictures/puzzleB/green.jpg'
+        f'../images/pictures/puzzle{letter}/white.jpg',
+        f'../images/pictures/puzzle{letter}/blue.jpg',
+        f'../images/pictures/puzzle{letter}/red.jpg',
+        f'../images/pictures/puzzle{letter}/green.jpg'
     ]
 
     print("⚠️  Ensure no pieces are touching and use background of different color!")
@@ -87,17 +89,7 @@ def main():
         print("  [b] → Bad")
         print("  [Esc] or [Enter] → Continue to next piece")
 
-        while True:
-            key = cv2.waitKey(0)
-            if key == ord('b'):
-                piece.is_bad = True
-                print(f"Marked Piece {idx} as BAD ✅")
-                break
-            elif key == ord('g'):
-                print(f"Marked Piece {idx} as GOOD 👍")
-                break
-            elif key in [27, 13]:
-                break
+        cv2.waitKey(1000)
 
         cv2.destroyWindow(window_name)
 
